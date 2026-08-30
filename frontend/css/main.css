@@ -939,3 +939,134 @@ h1, h2, h3, h4, p, span {
 .tag-post { color: #a78bfa; }
 .tag-level { color: #34d399; }
 
+/* BACKEND STATUS & INITIATION BUTTON STYLES */
+.backend-status-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.38rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    outline: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.backend-status-btn.idle {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.25));
+    border-color: rgba(99, 102, 241, 0.45);
+    color: #c7d2fe;
+}
+
+.backend-status-btn.idle:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(139, 92, 246, 0.4));
+    border-color: rgba(129, 140, 248, 0.8);
+    color: #ffffff;
+    box-shadow: 0 0 14px rgba(99, 102, 241, 0.4);
+    transform: translateY(-1px);
+}
+
+.backend-status-btn.loading {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.45);
+    color: #fbbf24;
+    cursor: wait;
+}
+
+.backend-status-btn.active {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.5);
+    color: #34d399;
+}
+
+.backend-status-btn.active:hover {
+    background: rgba(16, 185, 129, 0.25);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+}
+
+.backend-status-btn.error {
+    background: rgba(244, 63, 94, 0.15);
+    border-color: rgba(244, 63, 94, 0.45);
+    color: #f87171;
+}
+
+.backend-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(251, 191, 36, 0.3);
+    border-top-color: #fbbf24;
+    border-radius: 50%;
+    animation: backendSpin 0.75s linear infinite;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.backend-active-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #34d399;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #34d399;
+    animation: backendPulse 2s infinite;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+@keyframes backendSpin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes backendPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.25); }
+}
+
+/* BACKEND STATUS BANNER & BUTTON LOCK STYLES */
+.backend-status-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.65rem 1.25rem;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+    max-width: 750px;
+    width: 100%;
+}
+
+.backend-status-banner.banner-offline {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #fcd34d;
+}
+
+.backend-status-banner.banner-loading {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    color: #93c5fd;
+}
+
+.backend-status-banner.banner-active {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #6ee7b7;
+}
+
+.btn-locked, .disabled-btn {
+    opacity: 0.45 !important;
+    pointer-events: none !important;
+    cursor: not-allowed !important;
+    filter: grayscale(40%);
+    transition: all 0.3s ease;
+}
+
+
+

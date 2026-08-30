@@ -1,6 +1,9 @@
 // PrepFlow AI - API Client Module
 
-const API_BASE = '/api';
+// Determine API Base URL: Uses custom Render backend URL if hosted separately (e.g. Vercel), else defaults to relative /api
+const RENDER_BACKEND_URL = window.PREPFLOW_BACKEND_URL || ''; 
+const API_BASE = RENDER_BACKEND_URL ? `${RENDER_BACKEND_URL}/api` : '/api';
+
 
 async function apiFetch(endpoint, options = {}) {
     const token = localStorage.getItem('prepflow_token');

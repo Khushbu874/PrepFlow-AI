@@ -54,7 +54,11 @@ function initGlobalHeader() {
                 <li><a href="/mock-interview.html" class="nav-item ${activeKey === 'mock-interview' ? 'active' : ''}">Mock Interview</a></li>
             </ul>
 
-            <div class="nav-actions" id="navActions">
+            <div class="nav-actions" id="navActions" style="display:flex; align-items:center; gap:0.6rem;">
+                <button id="backendStatusBtn" class="backend-status-btn idle" onclick="initiateRenderBackend()" title="Click to initiate & wake up Render Backend server">
+                    ⚡ Initiate Backend
+                </button>
+
                 ${user ? `
                     <div style="display:flex; align-items:center; gap:0.6rem;">
                         <div class="user-profile-badge" title="${user.name || 'User Profile'}">
@@ -72,14 +76,107 @@ function initGlobalHeader() {
                     </div>
                 ` : `
                     <div style="display:flex; gap:0.4rem; white-space:nowrap;">
-                        <a href="/login.html" class="btn btn-sm btn-outline">Log In</a>
-                        <a href="/register.html" class="btn btn-sm btn-primary">Create Account</a>
+                        <a href="/login.html" id="navLogin" class="btn btn-sm btn-outline requires-backend">Log In</a>
+                        <a href="/register.html" id="navRegister" class="btn btn-sm btn-primary requires-backend">Create Account</a>
                     </div>
                 `}
             </div>
         </nav>
     `;
+    
+    // Auto ping health endpoint in background to check if backend is active or needs activation
+    setTimeout(() => {
+        const apiBaseUrl = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : '/api';
+        fetch(`${apiBaseUrl}/health`, { method: 'GET', cache: 'no-store' })
+            .then(res => {
+                if (res.ok) {
+                    res.json().then(data => window.setBackendState('active', { status: data.status }));
+                } else {
+                    window.setBackendState('idle');
+                }
+            })
+            .catch(() => {
+                window.setBackendState('idle');
+            });
+    }, 300);
 }
+
+window.setBackendState = function(state, data = {}) {
+    const btn = document.getElementById('backendStatusBtn');
+    const heroBanner = document.getElementById('backendStatusBanner');
+    const pageButtons = document.querySelectorAll('.requires-backend, #btnStartPrep, #btnHeroLogin, #navLogin, #navRegister');
+
+    if (state === 'active') {
+        if (btn) {
+            btn.disabled = false;
+            btn.className = 'backend-status-btn active';
+            btn.innerHTML = `<span class="backend-active-dot"></span> <span>Backend Activated</span>`;
+            btn.title = `Backend Status: ${data.status || 'online'} ${data.latency ? '| Latency: ' + data.latency + 'ms' : ''}`;
+        }
+        if (heroBanner) {
+            heroBanner.className = 'backend-status-banner banner-active';
+            heroBanner.innerHTML = `✅ <strong>Backend Activated:</strong> Server is online & ready. You can now log in or start preparation!`;
+        }
+        pageButtons.forEach(el => {
+            el.classList.remove('disabled-btn', 'btn-locked');
+            el.removeAttribute('aria-disabled');
+            el.style.pointerEvents = 'auto';
+            el.style.opacity = '1';
+        });
+    } else if (state === 'loading') {
+        if (btn) {
+            btn.disabled = true;
+            btn.className = 'backend-status-btn loading';
+            btn.innerHTML = `<span class="backend-spinner"></span> <span>Activating Backend...</span>`;
+        }
+        if (heroBanner) {
+            heroBanner.className = 'backend-status-banner banner-loading';
+            heroBanner.innerHTML = `<span class="backend-spinner"></span> <strong>Waking Up Server:</strong> Connecting to backend... Please wait a few seconds.`;
+        }
+        pageButtons.forEach(el => {
+            el.classList.add('disabled-btn', 'btn-locked');
+            el.setAttribute('aria-disabled', 'true');
+            el.style.pointerEvents = 'none';
+            el.style.opacity = '0.45';
+        });
+    } else { // idle or error
+        if (btn) {
+            btn.disabled = false;
+            btn.className = state === 'error' ? 'backend-status-btn error' : 'backend-status-btn idle';
+            btn.innerHTML = state === 'error' ? `⚠️ Server Offline (Retry)` : `⚡ Initiate Backend`;
+            btn.title = "Click to initiate & wake up backend server";
+        }
+        if (heroBanner) {
+            heroBanner.className = 'backend-status-banner banner-offline';
+            heroBanner.innerHTML = `🔒 <strong>Backend Offline:</strong> Click <strong>"⚡ Initiate Backend"</strong> above to wake up server before logging in.`;
+        }
+        pageButtons.forEach(el => {
+            el.classList.add('disabled-btn', 'btn-locked');
+            el.setAttribute('aria-disabled', 'true');
+            el.style.pointerEvents = 'none';
+            el.style.opacity = '0.45';
+        });
+    }
+};
+
+window.initiateRenderBackend = async function() {
+    window.setBackendState('loading');
+    const startTime = Date.now();
+    try {
+        const apiBaseUrl = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : '/api';
+        const res = await fetch(`${apiBaseUrl}/health`, { method: 'GET', cache: 'no-store' });
+        if (res.ok) {
+            const data = await res.json();
+            const latency = Date.now() - startTime;
+            window.setBackendState('active', { status: data.status, latency });
+        } else {
+            throw new Error(`HTTP ${res.status}`);
+        }
+    } catch (err) {
+        console.warn('Backend activation failed:', err);
+        window.setBackendState('error');
+    }
+};
 
 // Auto-run when DOM is ready
 if (document.readyState === 'loading') {
@@ -87,3 +184,5 @@ if (document.readyState === 'loading') {
 } else {
     initGlobalHeader();
 }
+
+
