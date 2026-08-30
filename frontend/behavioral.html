@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Behavioral & STAR Prep - PrepFlow AI</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="header-container"></div>
+
+    <main style="max-width:1050px; margin:2rem auto; padding:0 1.5rem; flex:1; width:100%;">
+        <h1 style="font-size:2rem; font-weight:800; margin-bottom:0.5rem;">Behavioral & HR Interview Preparation</h1>
+        <p style="color:var(--text-secondary); margin-bottom:2rem;">Draft your behavioral answers using the STAR framework and get instant AI feedback on clarity, structure, and impact.</p>
+
+        <!-- STAR Framework Card -->
+        <div class="card" style="margin-bottom:2rem; background:linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1)); border-color:var(--accent-purple);">
+            <h3 style="font-size:1.2rem; font-weight:800; color:var(--accent-purple); margin-bottom:0.75rem;">⭐ The STAR Method Blueprint</h3>
+            <div class="grid-4" style="gap:1rem;">
+                <div style="background:var(--bg-card); padding:0.85rem; border-radius:var(--radius-md);">
+                    <strong style="color:var(--accent-blue); display:block; margin-bottom:0.25rem;">S - Situation</strong>
+                    <span style="font-size:0.8rem; color:var(--text-secondary);">Set the context (15% of answer)</span>
+                </div>
+                <div style="background:var(--bg-card); padding:0.85rem; border-radius:var(--radius-md);">
+                    <strong style="color:var(--accent-purple); display:block; margin-bottom:0.25rem;">T - Task</strong>
+                    <span style="font-size:0.8rem; color:var(--text-secondary);">Identify your responsibility (15%)</span>
+                </div>
+                <div style="background:var(--bg-card); padding:0.85rem; border-radius:var(--radius-md);">
+                    <strong style="color:var(--accent-emerald); display:block; margin-bottom:0.25rem;">A - Action</strong>
+                    <span style="font-size:0.8rem; color:var(--text-secondary);">Technical steps YOU took (55%)</span>
+                </div>
+                <div style="background:var(--bg-card); padding:0.85rem; border-radius:var(--radius-md);">
+                    <strong style="color:var(--accent-amber); display:block; margin-bottom:0.25rem;">R - Result</strong>
+                    <span style="font-size:0.8rem; color:var(--text-secondary);">Quantified metric outcome (15%)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Answer Practice Card -->
+        <div class="card" style="margin-bottom:2rem;">
+            <div style="margin-bottom:1.25rem;">
+                <label style="display:block; font-weight:700; font-size:0.95rem; margin-bottom:0.5rem;">Select HR Interview Question</label>
+                <select id="behavioralQuestionSelect" class="form-control" style="font-size:0.95rem; padding:0.75rem;">
+                    <option value="Tell Me About Yourself">Tell Me About Yourself / Walk Me Through Your Resume</option>
+                    <option value="Describe a Difficult Technical Challenge">Describe a Difficult Technical Challenge & How You Solved It</option>
+                    <option value="Conflict Resolution in Team">Tell Me About a Time You Disagreed With a Technical Decision</option>
+                    <option value="Handling Failure under Deadline">Tell Me About a Time You Made a Mistake or Experienced Failure</option>
+                    <option value="Why Should We Hire You">Why Should We Hire You for This Engineering Role?</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom:1.5rem;">
+                <label style="display:block; font-weight:700; font-size:0.95rem; margin-bottom:0.5rem;">Draft Your Answer (Use STAR Format)</label>
+                <textarea id="behavioralAnswerText" class="form-control" rows="8" placeholder="When I was working on... My task was... I decided to implement... As a result, we achieved..." style="font-family:var(--font-sans); line-height:1.6;"></textarea>
+            </div>
+
+            <button onclick="submitBehavioralForFeedback()" class="btn btn-primary" style="padding:0.8rem 1.5rem;">Submit Answer for AI Feedback ✨</button>
+        </div>
+
+        <!-- Feedback Container -->
+        <div id="behavioralFeedbackContainer" style="display:none; margin-bottom:2rem;"></div>
+    </main>
+
+    <script src="/static/js/api.js?v=2.2"></script>
+    <script src="/static/js/auth.js?v=2.2"></script>
+    <script src="/static/js/navbar.js?v=2.2"></script>
+    <script src="/static/js/behavioral.js?v=2.2"></script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control Panel - PrepFlow AI</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/admin/dashboard.html" class="nav-brand">
+            <div class="nav-logo" style="background:linear-gradient(135deg, var(--accent-rose), var(--accent-purple));">A</div>
+            <span>PrepFlow Admin Panel</span>
+        </a>
+        <div class="nav-actions" id="navActions"></div>
+    </nav>
+
+    <div class="admin-layout">
+        <div class="admin-header">
+            <div>
+                <h1 style="font-size:2rem; font-weight:800;">Content & Platform Administration</h1>
+                <p style="color:var(--text-secondary);">Manage categories, topics, content blocks, practice questions, and AI generator.</p>
+            </div>
+            <a href="/dashboard.html" class="btn btn-secondary">← Back to User Portal</a>
+        </div>
+
+        <div class="admin-tabs">
+            <div class="admin-tab active" id="tab-ai-gen" onclick="switchAdminTab('ai-gen')">🤖 AI Content Generator</div>
+            <div class="admin-tab" id="tab-categories" onclick="switchAdminTab('categories')">📁 Categories & Topics</div>
+            <div class="admin-tab" id="tab-users" onclick="switchAdminTab('users')">👥 User Analytics</div>
+        </div>
+
+        <!-- TAB 1: AI CONTENT GENERATOR -->
+        <div id="content-ai-gen" class="admin-tab-content">
+            <div class="card" style="margin-bottom:2rem;">
+                <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:1rem;">Generate Structured Topic Content Blocks with AI</h3>
+                <div class="grid-2" style="margin-bottom:1.25rem;">
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:0.4rem;">Topic Name</label>
+                        <input type="text" id="aiGenTopicName" class="form-control" placeholder="e.g. Graph Breadth First Search (BFS)">
+                    </div>
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:0.4rem;">Target Category</label>
+                        <input type="text" id="aiGenCategoryName" class="form-control" placeholder="Data Structures & Algorithms">
+                    </div>
+                </div>
+                <button onclick="adminAIGenerateBlocks()" class="btn btn-primary">Generate Structured Draft ✨</button>
+            </div>
+
+            <div id="aiGenPreviewContainer"></div>
+        </div>
+
+        <!-- TAB 2: CATEGORIES & TOPICS MANAGEMENT -->
+        <div id="content-categories" class="admin-tab-content" style="display:none;">
+            <div class="grid-2">
+                <div class="card">
+                    <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:1rem;">Create New Category</h3>
+                    <div class="form-group">
+                        <label>Category Name</label>
+                        <input type="text" id="adminCatName" class="form-control" placeholder="System Design Advanced">
+                    </div>
+                    <div class="form-group">
+                        <label>Slug</label>
+                        <input type="text" id="adminCatSlug" class="form-control" placeholder="system-design-advanced">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="adminCatDesc" class="form-control" rows="2"></textarea>
+                    </div>
+                    <button onclick="submitAdminCategory()" class="btn btn-primary">Save Category</button>
+                </div>
+
+                <div class="card">
+                    <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:1rem;">Create New Topic</h3>
+                    <div class="form-group">
+                        <label>Parent Category</label>
+                        <select id="adminSelectCategory" class="form-control"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Topic Title</label>
+                        <input type="text" id="adminTopicTitle" class="form-control" placeholder="Load Balancing & Consistent Hashing">
+                    </div>
+                    <div class="form-group">
+                        <label>Slug</label>
+                        <input type="text" id="adminTopicSlug" class="form-control" placeholder="consistent-hashing">
+                    </div>
+                    <div class="form-group">
+                        <label>Difficulty</label>
+                        <select id="adminTopicDiff" class="form-control">
+                            <option value="Easy">Easy</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="Hard">Hard</option>
+                        </select>
+                    </div>
+                    <button onclick="submitAdminTopic()" class="btn btn-primary">Save Topic</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: USER ANALYTICS -->
+        <div id="content-users" class="admin-tab-content" style="display:none;">
+            <div class="card">
+                <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:1rem;">Registered Users & Preparation Activity</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Questions Solved</th>
+                            <th>Assessments Taken</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminUsersTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/admin.js"></script>
+</body>
+</html>

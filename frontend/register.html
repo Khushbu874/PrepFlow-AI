@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - PrepFlow AI</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, rgba(59, 130, 246, 0.08) 0%, transparent 60%), var(--bg-primary);
+            overflow-y: auto;
+        }
+        .auth-container {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        .auth-card {
+            width: 100%;
+            max-width: 440px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem 1.85rem;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
+            box-sizing: border-box;
+        }
+        .auth-header {
+            text-align: center;
+            margin-bottom: 1.1rem;
+        }
+        .auth-brand-logo {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: #fff;
+            font-size: 1.35rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-md);
+            margin: 0 auto 0.5rem auto;
+            box-shadow: 0 6px 18px rgba(59, 130, 246, 0.3);
+        }
+        .auth-header h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin: 0 0 0.2rem 0;
+            color: var(--text-primary);
+        }
+        .auth-header p {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+        .form-group {
+            margin-bottom: 0.75rem;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        @media (max-width: 420px) {
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+        }
+        .form-label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-bottom: 0.25rem;
+            color: var(--text-primary);
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 0.88rem;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        .error-banner {
+            display: none;
+            padding: 0.5rem 0.75rem;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+            border-radius: var(--radius-md);
+            font-size: 0.8rem;
+            margin-bottom: 0.75rem;
+        }
+        .auth-footer {
+            margin-top: 0.95rem;
+            text-align: center;
+            font-size: 0.83rem;
+            color: var(--text-secondary);
+        }
+        .auth-footer a {
+            color: var(--accent-blue);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-brand-logo">P</div>
+                <h2>Create an Account</h2>
+                <p>Join PrepFlow AI and master your DSA roadmap</p>
+            </div>
+
+            <div id="errorBanner" class="error-banner"></div>
+
+            <form id="registerForm" onsubmit="handleRegisterSubmit(event)">
+                <div class="form-group">
+                    <label class="form-label" for="regName">Full Name</label>
+                    <input type="text" id="regName" required class="form-input" placeholder="e.g. John Doe">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="regEmail">Email Address</label>
+                    <input type="email" id="regEmail" required class="form-input" placeholder="you@example.com">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="regPassword">Password</label>
+                        <input type="password" id="regPassword" required minlength="6" class="form-input" placeholder="Min 6 chars">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="regConfirmPassword">Confirm Password</label>
+                        <input type="password" id="regConfirmPassword" required minlength="6" class="form-input" placeholder="Re-enter">
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn btn-primary" style="width:100%; padding:0.68rem; font-size:0.95rem; margin-top:0.3rem;">
+                    Create Account →
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                Already have an account? <a href="/login.html">Log In</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/auth.js"></script>
+    <script>
+        async function handleRegisterSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+            const errBanner = document.getElementById('errorBanner');
+            const submitBtn = document.getElementById('submitBtn');
+
+            errBanner.style.display = 'none';
+
+            if (password !== confirmPassword) {
+                errBanner.innerText = "Passwords do not match. Please verify.";
+                errBanner.style.display = 'block';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Creating account...';
+
+            try {
+                await registerUser(name, email, password);
+            } catch(err) {
+                errBanner.innerText = err.message || "Registration failed. Please try again.";
+                errBanner.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Create Account →';
+            }
+        }
+    </script>
+</body>
+</html>

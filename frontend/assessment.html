@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assessments - PrepFlow AI</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="header-container"></div>
+
+    <main style="max-width:900px; margin:2rem auto; padding:0 1.5rem; flex:1; width:100%;">
+        <!-- LIST SECTION -->
+        <div id="assessmentListSection">
+            <h1 style="font-size:2rem; font-weight:800; margin-bottom:0.5rem;">Topic & Subject Assessments</h1>
+            <p style="color:var(--text-secondary); margin-bottom:2rem;">Test your deep understanding of CS Fundamentals, DBMS, Operating Systems, and DSA.</p>
+            <div id="assessmentListContainer"></div>
+        </div>
+
+        <!-- RUNNER SECTION -->
+        <div id="assessmentRunnerSection" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; background:var(--bg-secondary); padding:1rem 1.5rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+                <h2 style="font-size:1.4rem; font-weight:800;" id="quizTitle">Assessment Runner</h2>
+                <div style="font-size:1.1rem; font-weight:800; color:var(--accent-amber); display:flex; align-items:center; gap:0.4rem;">
+                    ⏱️ <span id="quizTimeText">15:00</span>
+                </div>
+            </div>
+
+            <div id="quizQuestionsContainer"></div>
+
+            <button onclick="submitQuizAnswers()" class="btn btn-primary" style="width:100%; padding:0.9rem; font-size:1rem; margin-top:1rem;">Submit Assessment Answers →</button>
+        </div>
+
+        <!-- RESULTS SECTION -->
+        <div id="assessmentResultsSection" style="display:none;">
+            <div class="card" style="text-align:center; padding:2rem; margin-bottom:2rem;">
+                <span id="resultPassBadge" class="badge badge-solved" style="font-size:1rem; padding:0.5rem 1.2rem; margin-bottom:1rem;">PASSED</span>
+                <h2 style="font-size:2rem; font-weight:800; margin:0.5rem 0;">Assessment Completed!</h2>
+                <div style="font-size:3rem; font-weight:800; color:var(--accent-blue);" id="resultPercentageText">80%</div>
+                <div style="font-size:1.1rem; color:var(--text-secondary); margin-top:0.2rem;" id="resultScoreText">8 / 10</div>
+            </div>
+
+            <h3 style="font-size:1.3rem; font-weight:800; margin-bottom:1rem;">Question Explanations & Review</h3>
+            <div id="resultExplanationsContainer"></div>
+            
+            <div style="margin-top:2rem; text-align:center;">
+                <a href="/assessment.html" class="btn btn-primary">Take Another Assessment</a>
+                <a href="/dashboard.html" class="btn btn-secondary">Back to Dashboard</a>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/js/api.js?v=2.2"></script>
+    <script src="/static/js/auth.js?v=2.2"></script>
+    <script src="/static/js/navbar.js?v=2.2"></script>
+    <script src="/static/js/assessment.js?v=2.2"></script>
+</body>
+</html>

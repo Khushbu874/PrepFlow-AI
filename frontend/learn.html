@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Hub - PrepFlow AI</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/learning.css">
+    <link rel="stylesheet" href="/static/css/ai-chat.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({ startOnLoad: true, theme: 'dark' });</script>
+</head>
+<body>
+    <div id="header-container"></div>
+
+    <!-- BACKDROPS FOR MOBILE SIDEBAR & AI SLIDE-OVER -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+    <div class="ai-backdrop" id="aiBackdrop" onclick="toggleAIChat(false)"></div>
+
+    <!-- 3-COLUMN LEARNING EXPERIENCE -->
+    <div class="learn-layout">
+        <!-- LEFT SIDEBAR: HIERARCHICAL ACCORDION TREE (Category -> Subcategory -> Sub-topic) -->
+        <aside class="sidebar-left" id="learningSidebar">
+            <div class="sidebar-header">
+                <h3>📚 Learning Roadmap</h3>
+                <button class="btn btn-sm btn-secondary sidebar-close-btn" onclick="toggleSidebar()" id="sidebarCloseBtn" title="Hide Sidebar">✕</button>
+            </div>
+            <div id="sidebarAccordion"></div>
+        </aside>
+
+        <!-- MIDDLE: MAIN LEARNING CONTENT & YOUTUBE PLAYER -->
+        <main class="main-learning-area">
+            <div class="learning-header">
+                <div class="topic-breadcrumbs" id="topicBreadcrumb">DSA ➔ Searching & Sorting</div>
+                <div class="topic-title-row">
+                    <h1 class="topic-main-title" id="topicTitle">Binary Search & Search Space</h1>
+                    <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+                        <button onclick="toggleCompleteCurrentTopic()" id="completeBtn" class="btn btn-sm btn-outline">⚪ Mark Complete</button>
+                        <button onclick="toggleBookmarkCurrentTopic()" id="bookmarkBtn" class="btn btn-sm btn-outline">☆ Bookmark</button>
+                        <button onclick="toggleAIChat()" class="btn btn-sm btn-primary">🤖 Ask AI</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- YOUTUBE VIDEO LECTURE & TIMESTAMP CONTAINER -->
+            <div id="videoSectionContainer"></div>
+
+            <!-- VOICE LEARNING TOOLBAR -->
+            <div class="voice-bar">
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                    <span style="font-size:1.1rem;">🎧</span>
+                    <div>
+                        <strong style="font-size:0.9rem;">Voice Explanation (Text-to-Speech)</strong>
+                        <div style="font-size:0.75rem; color:var(--text-secondary);">Listen to audio overview of this lesson</div>
+                    </div>
+                </div>
+                <div class="voice-controls">
+                    <button id="voicePlayBtn" onclick="speakCurrentTopic()" class="btn btn-sm btn-primary">▶ Play Audio</button>
+                    <button id="voicePauseBtn" onclick="voiceEngine.pause()" class="btn btn-sm btn-secondary" style="display:none;">⏸ Pause</button>
+                    <button id="voiceStopBtn" onclick="voiceEngine.stop()" class="btn btn-sm btn-outline">⏹ Stop</button>
+                    
+                    <select onchange="voiceEngine.setSpeed(this.value)" class="speed-select">
+                        <option value="1.0">1.0x Speed</option>
+                        <option value="1.25">1.25x Speed</option>
+                        <option value="1.5">1.5x Speed</option>
+                        <option value="2.0">2.0x Speed</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- DYNAMIC CONTENT BLOCK ENGINE CONTAINER -->
+            <div id="blocksContainer"></div>
+
+            <!-- TOPIC PRACTICE PROBLEMS LINKED SECTION -->
+            <div class="topic-practice-section">
+                <h3 style="font-size:1.3rem; font-weight:800; margin-bottom:1rem;">Practice Questions for this Topic</h3>
+                <div id="topicPracticeList"></div>
+            </div>
+        </main>
+
+        <!-- RIGHT SIDEBAR: COLLAPSIBLE AI TUTOR (HIDDEN BY DEFAULT, OPENS ON CLICK) -->
+        <aside class="sidebar-right-ai collapsed" id="aiChatPanel">
+            <div class="ai-header">
+                <div class="ai-title">
+                    <span>🤖</span>
+                    <span>AI Tutor Assistant</span>
+                </div>
+                <button onclick="toggleAIChat(false)" class="btn btn-sm btn-secondary" title="Close AI Panel">✕</button>
+            </div>
+
+            <div style="padding:0.6rem 1.25rem; background:rgba(0,0,0,0.15); border-bottom:1px solid var(--border-color); font-size:0.8rem; color:var(--text-muted);" id="aiTopicContextLabel">
+                Context: Binary Search & Search Space
+            </div>
+
+            <div class="ai-chat-body" id="aiChatBody">
+                <div class="chat-bubble chat-bubble-ai">
+                    Hello! I'm your PrepFlow AI tutor. Ask me any doubt about this topic, or click a quick action prompt below!
+                </div>
+            </div>
+
+            <!-- QUICK ACTION PROMPT PILLS -->
+            <div class="quick-actions-container">
+                <button onclick="sendAIMessage('explain_simple')" class="action-pill">💡 Explain Simply</button>
+                <button onclick="sendAIMessage('example')" class="action-pill">📝 Give Example</button>
+                <button onclick="sendAIMessage('logic')" class="action-pill">⚙️ Explain Logic</button>
+                <button onclick="sendAIMessage('dry_run')" class="action-pill">📊 Dry Run</button>
+                <button onclick="sendAIMessage('interview')" class="action-pill">🎯 Interview Insights</button>
+                <button onclick="sendAIMessage('quiz_me')" class="action-pill">❓ Quiz Me</button>
+            </div>
+
+            <div class="ai-input-area">
+                <input type="text" id="aiChatInput" class="ai-input" placeholder="Ask AI a question..." onkeydown="if(event.key==='Enter') sendAIMessage()">
+                <button onclick="sendAIMessage()" class="btn btn-primary btn-sm">Send</button>
+            </div>
+        </aside>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="/static/js/api.js?v=2.2"></script>
+    <script src="/static/js/auth.js?v=2.2"></script>
+    <script src="/static/js/navbar.js?v=2.2"></script>
+    <script src="/static/js/render-engine.js?v=2.2"></script>
+    <script src="/static/js/voice.js?v=2.2"></script>
+    <script src="/static/js/ai-chat.js?v=2.2"></script>
+    <script src="/static/js/topics-data.js?v=2.2"></script>
+    <script src="/static/js/learning.js?v=2.2"></script>
+</body>
+</html>
