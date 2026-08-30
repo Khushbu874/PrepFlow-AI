@@ -1,4 +1,11 @@
 import os
+import sys
+
+# Ensure backend directory is in sys.path so 'import app' works seamlessly everywhere (Render / Local)
+backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -7,6 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from app.config import settings
 from app.database import init_db
 from app.api import auth, categories, subjects, topics, content, practice, assessments, progress, ai
+
 
 # Initialize DB and seed tables on backend load
 try:
