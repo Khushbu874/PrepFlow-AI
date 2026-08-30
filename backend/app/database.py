@@ -14,6 +14,13 @@ except ImportError:
     RealDictCursor = None
 
 
+class PgRowWrapper(dict):
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            return list(self.values())[item]
+        return super().__getitem__(item)
+
+
 class PgCursorWrapper:
     def __init__(self, cur):
         self._cur = cur
@@ -28,11 +35,12 @@ class PgCursorWrapper:
 
     def fetchone(self):
         res = self._cur.fetchone()
-        return dict(res) if res is not None else None
+        return PgRowWrapper(res) if res is not None else None
 
     def fetchall(self):
         res = self._cur.fetchall()
-        return [dict(r) for r in res] if res is not None else []
+        return [PgRowWrapper(r) for r in res] if res is not None else []
+
 
 
 class PgConnectionWrapper:
