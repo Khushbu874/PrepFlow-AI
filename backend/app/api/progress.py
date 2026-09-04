@@ -216,7 +216,8 @@ def toggle_solved_question(req: SolvedQuestionToggle):
         conn.commit()
     except Exception as e:
         conn.rollback()
-        status = "error"
+        print(f"[DB Error] toggle_solved_question failed for user={req.user_id} q='{req.question_title}': {e}")
+        raise HTTPException(status_code=500, detail=f"DB error: {str(e)}")
     finally:
         conn.close()
 
@@ -283,6 +284,23 @@ def create_topic_note(req: TopicNoteCreate):
         conn.close()
 
     return {"id": note_id, "user_id": req.user_id, "topic_id": req.topic_id, "note_text": req.note_text, "created_at": now}
+
+
+@router.put("/notes/{note_id}")
+def update_topic_note(note_id: str, req: TopicNoteUpdate):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    now = datetime.utcnow().isoformat()
+    try:
+        cursor.execute("UPDATE user_topic_notes SET note_text = ?, updated_at = ? WHERE id = ?", (req.note_text, now, note_id))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+    return {"id": note_id, "note_text": req.note_text, "updated_at": now}
 
 
 @router.delete("/notes/{note_id}")

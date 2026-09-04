@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 
 from app.config import settings
-from app.database import init_db
+from app.database import init_db, migrate_db
 from app.api import auth, categories, subjects, topics, content, progress, ai
 
 
@@ -21,6 +21,12 @@ try:
     init_db()
 except Exception as e:
     print(f"[DB Startup Warning]: {e}")
+
+# Run safe migrations (creates any new tables missing in existing DBs)
+try:
+    migrate_db()
+except Exception as e:
+    print(f"[DB Migration Warning]: {e}")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

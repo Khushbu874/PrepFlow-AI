@@ -35,7 +35,6 @@ class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", os.getenv("PALM_API_KEY", ""))
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     
-    # Database
-    DATABASE_PATH: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "prepflow.db")
+
 
 settings = Settings()

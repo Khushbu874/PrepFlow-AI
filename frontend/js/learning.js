@@ -4,6 +4,7 @@ let currentTopicData = null;
 let currentVideoConfig = null;
 let userCompletedTopics = new Set();
 let userBookmarkedTopics = new Set();
+let userSolvedQuestions = new Set(); // In-memory only — source of truth is Supabase DB
 
 document.addEventListener('DOMContentLoaded', async () => {
     requireAuth();
@@ -14,6 +15,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize User Topic State (Completed & Bookmarked)
     await initUserTopicState();
+
+    // Load solved questions from Supabase DB into memory
+    await loadSolvedQuestionsFromDB();
 
     // Parse URL params for selected topic or category
     const urlParams = new URLSearchParams(window.location.search);
@@ -28,8 +32,9 @@ document.addEventListener('DOMContentLoaded', async () => {
  * ------------------------------------------------------------- */
 async function initUserTopicState() {
     const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    const userId = (user && user.id) ? user.id : 'a0000000-0000-0000-0000-000000000002';
-    
+    const userId = (user && user.id) ? user.id : null;
+    if (!userId) return;
+
     try {
         const data = await apiFetch(`/progress/user-topics/${userId}`);
         if (data) {
@@ -37,11 +42,19 @@ async function initUserTopicState() {
             userBookmarkedTopics = new Set(data.bookmarked_topic_ids || []);
         }
     } catch (e) {
-        console.warn("Could not fetch user topics from server, using local cache:", e);
-        const cachedDone = JSON.parse(localStorage.getItem(`prepflow_done_${userId}`) || '[]');
-        const cachedBook = JSON.parse(localStorage.getItem(`prepflow_book_${userId}`) || '[]');
-        userCompletedTopics = new Set(cachedDone);
-        userBookmarkedTopics = new Set(cachedBook);
+        console.warn("Could not fetch user topic state from DB:", e);
+    }
+}
+
+async function loadSolvedQuestionsFromDB() {
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    if (!user || !user.id) return;
+    try {
+        const rows = await apiFetch(`/progress/solved-questions/${user.id}`);
+        userSolvedQuestions = new Set((rows || []).map(r => r.question_title));
+    } catch (e) {
+        console.warn("Could not load solved questions from DB:", e);
+        userSolvedQuestions = new Set();
     }
 }
 
@@ -622,68 +635,67 @@ window.switchEditorLang = switchEditorLang;
 
 /* -------------------------------------------------------------
  * TOPIC LEETCODE PRACTICE PROBLEMS & SOLVE TRACKER
+ * Source of truth: Supabase DB via in-memory userSolvedQuestions Set
+ * No localStorage used.
  * ------------------------------------------------------------- */
-function getSolvedQuestionsSet() {
-    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    const key = user && user.id ? `prepflow_solved_q_${user.id}` : 'prepflow_solved_q_guest';
-    try {
-        return new Set(JSON.parse(localStorage.getItem(key) || '[]'));
-    } catch (e) {
-        return new Set();
-    }
-}
-
-function saveSolvedQuestionsSet(solvedSet) {
-    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    const key = user && user.id ? `prepflow_solved_q_${user.id}` : 'prepflow_solved_q_guest';
-    localStorage.setItem(key, JSON.stringify(Array.from(solvedSet)));
-}
-
 async function toggleSolveQuestion(qTitle) {
-    const solvedSet = getSolvedQuestionsSet();
-    if (solvedSet.has(qTitle)) {
-        solvedSet.delete(qTitle);
-    } else {
-        solvedSet.add(qTitle);
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    if (!user || !user.id) {
+        alert('Please log in to track your solved questions.');
+        return;
     }
-    saveSolvedQuestionsSet(solvedSet);
+
+    // Optimistic in-memory update
+    const wasSolved = userSolvedQuestions.has(qTitle);
+    if (wasSolved) {
+        userSolvedQuestions.delete(qTitle);
+    } else {
+        userSolvedQuestions.add(qTitle);
+    }
+
+    // Re-render immediately with updated in-memory state
     if (currentTopicData && currentTopicData.practice_questions) {
         renderPracticeQuestions(currentTopicData.practice_questions);
     }
 
-    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    if (user && user.id) {
-        try {
-            await apiFetch('/progress/solved-questions/toggle', {
-                method: 'POST',
-                body: JSON.stringify({
-                    user_id: user.id,
-                    question_title: qTitle,
-                    topic_id: currentTopicData ? currentTopicData.id : null
-                })
-            });
-        } catch (e) {
-            console.warn("Solved question toggle DB sync failed:", e);
+    // Persist to Supabase DB
+    const topicId = currentTopicData ? (currentTopicData.slug || currentTopicData.id) : null;
+    try {
+        await apiFetch('/progress/solved-questions/toggle', {
+            method: 'POST',
+            body: JSON.stringify({
+                user_id: user.id,
+                question_title: qTitle,
+                topic_id: topicId
+            })
+        });
+    } catch (e) {
+        // Rollback optimistic update on failure
+        if (wasSolved) {
+            userSolvedQuestions.add(qTitle);
+        } else {
+            userSolvedQuestions.delete(qTitle);
         }
+        if (currentTopicData && currentTopicData.practice_questions) {
+            renderPracticeQuestions(currentTopicData.practice_questions);
+        }
+        console.warn('Solved question DB sync failed — rolled back:', e);
     }
 }
 
 function renderPracticeQuestions(questions) {
     const practiceContainer = document.getElementById('topicPracticeList');
     if (!practiceContainer) return;
-    
+
     if (!questions || questions.length === 0) {
         practiceContainer.innerHTML = `<p style="color:var(--text-muted); font-size:0.9rem;">No LeetCode questions linked to this topic yet.</p>`;
         return;
     }
 
-    const solvedSet = getSolvedQuestionsSet();
+    // Use in-memory Set loaded from Supabase DB — no localStorage
     const totalCount = questions.length;
     let solvedCount = 0;
-
-    questions.forEach(q => {
-        if (solvedSet.has(q.title)) solvedCount++;
-    });
+    questions.forEach(q => { if (userSolvedQuestions.has(q.title)) solvedCount++; });
 
     const percent = totalCount > 0 ? Math.round((solvedCount / totalCount) * 100) : 0;
 
@@ -699,13 +711,13 @@ function renderPracticeQuestions(questions) {
         </div>
     `;
 
-    let listHtml = questions.map((q, idx) => {
-        const isSolved = solvedSet.has(q.title);
-        const safeTitle = (q.title || '').replace(/'/g, "\\'");
+    let listHtml = questions.map(q => {
+        const isSolved = userSolvedQuestions.has(q.title);
+        const safeTitle = (q.title || '').replace(/'/g, "\\'")
         return `
             <div class="practice-card-item ${isSolved ? 'solved' : ''}">
                 <div class="practice-card-left">
-                    <button class="practice-check-btn ${isSolved ? 'checked' : ''}" 
+                    <button class="practice-check-btn ${isSolved ? 'checked' : ''}"
                             title="${isSolved ? 'Mark as Unsolved' : 'Mark as Solved'}"
                             onclick="toggleSolveQuestion('${safeTitle}')">
                         ${isSolved ? '✓' : ''}
@@ -862,7 +874,7 @@ function cancelEditTopicNote(noteId) {
     if (edit) edit.style.display = 'none';
 }
 
-function saveEditedTopicNote(noteId) {
+async function saveEditedTopicNote(noteId) {
     if (!currentTopicData) return;
     const slug = currentTopicData.slug;
     const editInput = document.getElementById(`noteEditText_${noteId}`);
@@ -881,12 +893,40 @@ function saveEditedTopicNote(noteId) {
         target.updatedAt = new Date().toISOString();
         saveTopicNotes(slug, notes);
         renderTopicNotes(slug);
+
+        // Sync edit to backend if it's a server-side UUID (not a local temp ID)
+        if (!noteId.startsWith('note_')) {
+            try {
+                await apiFetch(`/progress/notes/${noteId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ note_text: newText })
+                });
+            } catch (e) {
+                console.warn("Note edit DB sync failed:", e);
+            }
+        }
     }
 }
 
-function deleteTopicNote(noteId) {
+async function deleteTopicNote(noteId) {
     if (!currentTopicData) return;
     const slug = currentTopicData.slug;
+
+    const doDelete = async () => {
+        let notes = getTopicNotes(slug);
+        notes = notes.filter(n => n.id !== noteId);
+        saveTopicNotes(slug, notes);
+        renderTopicNotes(slug);
+
+        // Sync deletion to backend if it's a server-side UUID (not a local temp ID)
+        if (!noteId.startsWith('note_')) {
+            try {
+                await apiFetch(`/progress/notes/${noteId}`, { method: 'DELETE' });
+            } catch (e) {
+                console.warn("Note deletion DB sync failed:", e);
+            }
+        }
+    };
 
     if (typeof Swal !== 'undefined') {
         Swal.fire({
@@ -900,21 +940,9 @@ function deleteTopicNote(noteId) {
             cancelButtonText: 'Cancel',
             background: '#0f172a',
             color: '#f8fafc'
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.isConfirmed) {
-                let notes = getTopicNotes(slug);
-                notes = notes.filter(n => n.id !== noteId);
-                saveTopicNotes(slug, notes);
-                renderTopicNotes(slug);
-
-                if (!noteId.startsWith('note_')) {
-                    try {
-                        apiFetch(`/progress/notes/${noteId}`, { method: 'DELETE' });
-                    } catch (e) {
-                        console.warn("Note deletion DB sync failed:", e);
-                    }
-                }
-
+                await doDelete();
                 Swal.fire({
                     title: 'Deleted!',
                     text: 'Your personal note has been removed.',
@@ -928,10 +956,7 @@ function deleteTopicNote(noteId) {
         });
     } else {
         if (!confirm("Are you sure you want to delete this personal note?")) return;
-        let notes = getTopicNotes(slug);
-        notes = notes.filter(n => n.id !== noteId);
-        saveTopicNotes(slug, notes);
-        renderTopicNotes(slug);
+        await doDelete();
     }
 }
 
