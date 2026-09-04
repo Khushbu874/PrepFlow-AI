@@ -99,14 +99,18 @@ async function loadDashboardData(userId) {
         document.getElementById('completedTopicsCountText').innerText = completedTopicsCount;
         document.getElementById('totalTopicsMetaText').innerText = `${completedTopicsCount} / ${totalTopicsCount} Topics Completed`;
 
-        // Calculate solved LeetCode questions from localStorage set
+        // Calculate solved LeetCode questions: Prioritize DB dashboardData first, fallback to localStorage
         let solvedQuestionsCount = 0;
-        try {
-            const key = userId ? `prepflow_solved_q_${userId}` : 'prepflow_solved_q_guest';
-            const solvedSet = JSON.parse(localStorage.getItem(key) || '[]');
-            solvedQuestionsCount = Array.isArray(solvedSet) ? solvedSet.length : (dashboardData.solved_count || 0);
-        } catch (e) {
-            solvedQuestionsCount = dashboardData.solved_count || 0;
+        if (dashboardData && typeof dashboardData.solved_count === 'number' && dashboardData.solved_count > 0) {
+            solvedQuestionsCount = dashboardData.solved_count;
+        } else {
+            try {
+                const key = userId ? `prepflow_solved_q_${userId}` : 'prepflow_solved_q_guest';
+                const solvedSet = JSON.parse(localStorage.getItem(key) || '[]');
+                solvedQuestionsCount = Array.isArray(solvedSet) ? solvedSet.length : (dashboardData.solved_count || 0);
+            } catch (e) {
+                solvedQuestionsCount = dashboardData.solved_count || 0;
+            }
         }
 
         if (document.getElementById('solvedQuestionsCountText')) {

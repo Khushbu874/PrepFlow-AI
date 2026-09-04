@@ -773,7 +773,7 @@ function scrollToNotesSection() {
     }
 }
 
-function renderTopicNotes(topicSlug) {
+async function renderTopicNotes(topicSlug) {
     const slug = topicSlug || (currentTopicData ? currentTopicData.slug : '');
     if (!slug) return;
 
@@ -781,12 +781,36 @@ function renderTopicNotes(topicSlug) {
     const badge = document.getElementById('notesCountBadge');
     if (!notesContainer) return;
 
-    const notes = getTopicNotes(slug);
+    // 1. Render immediately from local cache
+    let notes = getTopicNotes(slug);
+    displayTopicNotes(notes, notesContainer, badge);
+
+    // 2. Fetch latest notes from Supabase DB if logged in
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    if (user && user.id) {
+        try {
+            const dbNotes = await apiFetch(`/progress/notes/${user.id}/${slug}`);
+            if (Array.isArray(dbNotes)) {
+                const formattedNotes = dbNotes.map(n => ({
+                    id: n.id,
+                    text: n.note_text,
+                    createdAt: n.created_at || n.updated_at || new Date().toISOString()
+                }));
+                saveTopicNotes(slug, formattedNotes);
+                displayTopicNotes(formattedNotes, notesContainer, badge);
+            }
+        } catch (e) {
+            console.warn("Could not fetch topic notes from DB:", e);
+        }
+    }
+}
+
+function displayTopicNotes(notes, notesContainer, badge) {
     if (badge) {
         badge.innerText = `${notes.length} Note${notes.length === 1 ? '' : 's'} Saved`;
     }
 
-    if (notes.length === 0) {
+    if (!notes || notes.length === 0) {
         notesContainer.innerHTML = `
             <div style="text-align:center; padding:1.25rem; background:rgba(0,0,0,0.15); border:1px dashed var(--border-color); border-radius:var(--radius-sm); color:var(--text-muted); font-size:0.88rem;">
                 No personal notes added for this topic yet. Write your first note above to save key insights for future revision!
