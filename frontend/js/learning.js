@@ -6,25 +6,32 @@ let userCompletedTopics = new Set();
 let userBookmarkedTopics = new Set();
 let userSolvedQuestions = new Set(); // In-memory only — source of truth is Supabase DB
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     requireAuth();
     renderNavProfile();
     
     // Initialize Sidebar State (Desktop collapsed state & button states)
     initSidebarState();
 
-    // Initialize User Topic State (Completed & Bookmarked)
-    await initUserTopicState();
-
-    // Load solved questions from Supabase DB into memory
-    await loadSolvedQuestionsFromDB();
-
-    // Parse URL params for selected topic or category
+    // 1. Render static sidebar tree and topic content INSTANTLY (0ms delay!)
     const urlParams = new URLSearchParams(window.location.search);
     const topicSlug = urlParams.get('topic') || 'time-complexity';
     
     renderStaticTree(topicSlug);
     loadTopicBySlug(topicSlug);
+
+    // 2. Fetch user topic progress and DB state in background without blocking page render
+    (async () => {
+        await initUserTopicState();
+        await loadSolvedQuestionsFromDB();
+        
+        // Re-render sidebar & header button states once DB progress arrives
+        renderStaticTree(topicSlug);
+        updateHeaderButtonStates();
+        if (currentTopicData && currentTopicData.practice_questions) {
+            renderPracticeQuestions(currentTopicData.practice_questions);
+        }
+    })();
 });
 
 /* -------------------------------------------------------------
@@ -783,7 +790,18 @@ async function renderTopicNotes(topicSlug) {
 
     // 1. Render immediately from local cache
     let notes = getTopicNotes(slug);
-    displayTopicNotes(notes, notesContainer, badge);
+    
+    // If local cache is empty, display a sleek loading state first
+    if (!notes || notes.length === 0) {
+        notesContainer.innerHTML = `
+            <div style="text-align:center; padding:1.25rem; background:rgba(0,0,0,0.15); border:1px dashed var(--border-color); border-radius:var(--radius-sm); color:var(--text-muted); font-size:0.88rem; display:flex; align-items:center; justify-content:center; gap:0.5rem;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 1s linear infinite;"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 0-10.57L2.1 5"/><path d="M2.5 22v-6h6"/></svg>
+                <span>Syncing notes with Supabase DB...</span>
+            </div>
+        `;
+    } else {
+        displayTopicNotes(notes, notesContainer, badge);
+    }
 
     // 2. Fetch latest notes from Supabase DB if logged in
     const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
@@ -801,6 +819,7 @@ async function renderTopicNotes(topicSlug) {
             }
         } catch (e) {
             console.warn("Could not fetch topic notes from DB:", e);
+            displayTopicNotes(notes, notesContainer, badge);
         }
     }
 }

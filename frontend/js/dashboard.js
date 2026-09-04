@@ -1,13 +1,25 @@
 // PrepFlow AI - Dynamic Analytics & Dashboard Controller
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     requireAuth();
     renderNavProfile();
     
     const user = getCurrentUser();
     document.getElementById('userNameWelcome').innerText = user ? user.name : 'Learner';
     
-    await loadDashboardData(user.id);
+    // Show initial loading skeletons
+    const moduleList = document.getElementById('moduleAnalyticsList');
+    if (moduleList) {
+        moduleList.innerHTML = `<div style="grid-column: 1/-1; padding:1.5rem; text-align:center; color:var(--text-muted); font-size:0.9rem; display:flex; align-items:center; justify-content:center; gap:0.5rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 1s linear infinite;"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 0-10.57L2.1 5"/><path d="M2.5 22v-6h6"/></svg><span>Loading Curriculum Module Analytics...</span></div>`;
+    }
+    const weakList = document.getElementById('weakTopicsList');
+    if (weakList) {
+        weakList.innerHTML = `<div style="padding:1.5rem; text-align:center; color:var(--text-muted); font-size:0.9rem; display:flex; align-items:center; justify-content:center; gap:0.5rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 1s linear infinite;"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 0-10.57L2.1 5"/><path d="M2.5 22v-6h6"/></svg><span>Syncing Bookmarked Topics from Supabase DB...</span></div>`;
+    }
+
+    if (user && user.id) {
+        loadDashboardData(user.id);
+    }
 });
 
 async function loadDashboardData(userId) {
