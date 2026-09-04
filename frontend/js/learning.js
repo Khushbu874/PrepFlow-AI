@@ -1017,11 +1017,66 @@ async function deleteTopicNote(noteId) {
         if (!confirm("Are you sure you want to delete this personal note?")) return;
         await doDelete();
     }
-}
-
 window.scrollToNotesSection = scrollToNotesSection;
 window.addTopicNote = addTopicNote;
 window.startEditTopicNote = startEditTopicNote;
 window.cancelEditTopicNote = cancelEditTopicNote;
 window.saveEditedTopicNote = saveEditedTopicNote;
 window.deleteTopicNote = deleteTopicNote;
+
+/* -------------------------------------------------------------
+ * SECTION REFRESH SYNC HANDLERS
+ * ------------------------------------------------------------- */
+async function refreshCurrentTopicNotes() {
+    const icon = document.getElementById('refreshNotesSpinner');
+    if (icon) icon.style.animation = 'spin 1s linear infinite';
+    
+    const slug = currentTopicData ? currentTopicData.slug : '';
+    await renderTopicNotes(slug);
+    
+    if (icon) icon.style.animation = 'none';
+
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Notes Synced',
+            text: 'Topic notes updated from Supabase DB.',
+            showConfirmButton: false,
+            timer: 2000,
+            background: '#1e293b',
+            color: '#f8fafc'
+        });
+    }
+}
+
+async function refreshPracticeQuestionsSync() {
+    const icon = document.getElementById('refreshPracticeSpinner');
+    if (icon) icon.style.animation = 'spin 1s linear infinite';
+
+    await loadSolvedQuestionsFromDB();
+    if (currentTopicData && currentTopicData.practice_questions) {
+        renderPracticeQuestions(currentTopicData.practice_questions);
+    }
+
+    if (icon) icon.style.animation = 'none';
+
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Practice Status Synced',
+            text: 'Solved status synced from Supabase DB.',
+            showConfirmButton: false,
+            timer: 2000,
+            background: '#1e293b',
+            color: '#f8fafc'
+        });
+    }
+}
+
+window.refreshCurrentTopicNotes = refreshCurrentTopicNotes;
+window.refreshPracticeQuestionsSync = refreshPracticeQuestionsSync;
+

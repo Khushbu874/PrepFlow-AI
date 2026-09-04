@@ -237,3 +237,32 @@ async function loadDashboardData(userId) {
         console.error("Dashboard load failed:", err);
     }
 }
+
+async function refreshDashboardDataSync() {
+    const icon = document.getElementById('refreshDashboardSpinner');
+    if (icon) icon.style.animation = 'spin 1s linear infinite';
+
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    if (user && user.id) {
+        await loadDashboardData(user.id);
+    }
+
+    if (icon) icon.style.animation = 'none';
+
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Dashboard Synced',
+            text: 'All metrics updated from Supabase DB.',
+            showConfirmButton: false,
+            timer: 2000,
+            background: '#1e293b',
+            color: '#f8fafc'
+        });
+    }
+}
+
+window.refreshDashboardDataSync = refreshDashboardDataSync;
+

@@ -34,10 +34,16 @@
         <div id="resumeLearningContainer" style="margin-bottom:2rem;"></div>
 
         <!-- Preparation & Performance Analytics Overview -->
-        <h3 style="font-size:1.25rem; font-weight:800; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
-            <span>📈</span>
-            <span>Performance & Progress Analytics</span>
-        </h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+            <h3 style="font-size:1.25rem; font-weight:800; display:flex; align-items:center; gap:0.5rem; margin:0;">
+                <span>📈</span>
+                <span>Performance & Progress Analytics</span>
+            </h3>
+            <button onclick="refreshDashboardDataSync()" class="btn btn-sm btn-outline" id="refreshDashboardBtn" title="Sync dashboard metrics with DB" style="display:flex; align-items:center; gap:0.35rem;">
+                <svg id="refreshDashboardSpinner" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 0-10.57L2.1 5"/><path d="M2.5 22v-6h6"/></svg>
+                <span>Sync DB Data</span>
+            </button>
+        </div>
         <div class="grid-4" style="margin-bottom:2.5rem;">
             <div class="card">
                 <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted);">OVERALL PREPARATION</div>
@@ -48,35 +54,32 @@
             </div>
             <div class="card">
                 <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted);">TOPICS MASTERED</div>
-                <div style="font-size:2rem; font-weight:800; color:var(--accent-emerald); margin:0.3rem 0;" id="completedTopicsCountText">0</div>
-                <div style="font-size:0.8rem; color:var(--text-secondary);" id="totalTopicsMetaText">Across 17 Core Modules</div>
+                <div style="font-size:2rem; font-weight:800; color:var(--accent-green); margin:0.3rem 0;" id="completedTopicsCountText">0</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);" id="totalTopicsMetaText">0 / 0 Topics Completed</div>
             </div>
             <div class="card">
-                <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted);">LEETCODE QUESTIONS SOLVED</div>
-                <div style="font-size:2rem; font-weight:800; color:var(--accent-amber); margin:0.3rem 0;" id="solvedQuestionsCountText">0</div>
-                <div style="font-size:0.8rem; color:var(--text-secondary);">Practice Problems Completed</div>
+                <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted);">SOLVED QUESTIONS</div>
+                <div style="font-size:2rem; font-weight:800; color:var(--accent-purple); margin:0.3rem 0;" id="solvedQuestionsCountText">0</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">LeetCode & Practice Problems</div>
             </div>
             <div class="card">
-                <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted);">BOOKMARKED TOPICS</div>
+                <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted);">BOOKMARKED FOR REVISION</div>
                 <div style="font-size:2rem; font-weight:800; color:var(--accent-rose); margin:0.3rem 0;" id="revisionCountText">0</div>
-                <div style="font-size:0.8rem; color:var(--text-secondary);">Saved for Quick Review</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">Topics flagged for review</div>
             </div>
         </div>
 
-        <!-- Detailed Module & Category Progress Breakdown -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
-            <h3 style="font-size:1.25rem; font-weight:800; display:flex; align-items:center; gap:0.5rem;">
-                <span>📚</span>
-                <span>DSA Curriculum Module Analytics</span>
-            </h3>
-            <a href="/learn.html" class="btn btn-sm btn-outline">Explore Learning Hub →</a>
-        </div>
-        <div class="grid-3" id="categoryProgressGrid" style="margin-bottom:2.5rem;"></div>
+        <!-- Module Progress Breakdown -->
+        <h3 style="font-size:1.25rem; font-weight:800; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
+            <span>📚</span>
+            <span>Module Mastery Breakdown</span>
+        </h3>
+        <div class="grid-2" style="margin-bottom:2.5rem;" id="moduleAnalyticsList"></div>
 
         <!-- Bookmarked Topics Section -->
         <div class="card" style="margin-bottom:2rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
-                <h3 style="font-size:1.15rem; font-weight:700; color:var(--accent-rose); display:flex; align-items:center; gap:0.4rem;">
+                <h3 style="font-size:1.15rem; font-weight:700; color:var(--accent-rose); display:flex; align-items:center; gap:0.4rem; margin:0;">
                     <span>📌</span>
                     <span>Bookmarked Topics</span>
                 </h3>
@@ -85,10 +88,10 @@
         </div>
     </main>
 
-    <script src="/static/js/api.js?v=2.6"></script>
-    <script src="/static/js/auth.js?v=2.6"></script>
-    <script src="/static/js/navbar.js?v=2.6"></script>
-    <script src="/static/js/topics-data.js?v=2.6"></script>
-    <script src="/static/js/dashboard.js?v=2.6"></script>
+    <script src="/static/js/api.js?v=2.7"></script>
+    <script src="/static/js/auth.js?v=2.7"></script>
+    <script src="/static/js/navbar.js?v=2.7"></script>
+    <script src="/static/js/topics-data.js?v=2.7"></script>
+    <script src="/static/js/dashboard.js?v=2.7"></script>
 </body>
 </html>
