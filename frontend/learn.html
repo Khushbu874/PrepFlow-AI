@@ -36,6 +36,8 @@
                 <div class="topic-title-row">
                     <h1 class="topic-main-title" id="topicTitle">Binary Search & Search Space</h1>
                     <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+                        <button onclick="speakCurrentTopic()" id="voiceHeaderBtn" class="btn btn-sm btn-outline" title="Listen to audio overview of this lesson">🎧 Listen</button>
+                        <button onclick="scrollToNotesSection()" class="btn btn-sm btn-outline" title="View & Add Personal Notes for this topic">📝 Notes</button>
                         <button onclick="toggleCompleteCurrentTopic()" id="completeBtn" class="btn btn-sm btn-outline">⚪ Mark Complete</button>
                         <button onclick="toggleBookmarkCurrentTopic()" id="bookmarkBtn" class="btn btn-sm btn-outline">☆ Bookmark</button>
                         <button onclick="toggleAIChat()" class="btn btn-sm btn-primary">🤖 Ask AI</button>
@@ -46,35 +48,37 @@
             <!-- YOUTUBE VIDEO LECTURE & TIMESTAMP CONTAINER -->
             <div id="videoSectionContainer"></div>
 
-            <!-- VOICE LEARNING TOOLBAR -->
-            <div class="voice-bar">
-                <div style="display:flex; align-items:center; gap:0.75rem;">
-                    <span style="font-size:1.1rem;">🎧</span>
-                    <div>
-                        <strong style="font-size:0.9rem;">Voice Explanation (Text-to-Speech)</strong>
-                        <div style="font-size:0.75rem; color:var(--text-secondary);">Listen to audio overview of this lesson</div>
-                    </div>
-                </div>
-                <div class="voice-controls">
-                    <button id="voicePlayBtn" onclick="speakCurrentTopic()" class="btn btn-sm btn-primary">▶ Play Audio</button>
-                    <button id="voicePauseBtn" onclick="voiceEngine.pause()" class="btn btn-sm btn-secondary" style="display:none;">⏸ Pause</button>
-                    <button id="voiceStopBtn" onclick="voiceEngine.stop()" class="btn btn-sm btn-outline">⏹ Stop</button>
-                    
-                    <select onchange="voiceEngine.setSpeed(this.value)" class="speed-select">
-                        <option value="1.0">1.0x Speed</option>
-                        <option value="1.25">1.25x Speed</option>
-                        <option value="1.5">1.5x Speed</option>
-                        <option value="2.0">2.0x Speed</option>
-                    </select>
-                </div>
-            </div>
-
             <!-- DYNAMIC CONTENT BLOCK ENGINE CONTAINER -->
             <div id="blocksContainer"></div>
 
-            <!-- TOPIC PRACTICE PROBLEMS LINKED SECTION -->
+            <!-- TOPIC PERSONAL NOTES SECTION -->
+            <div class="topic-notes-section" id="topicNotesSection">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+                    <h3 style="font-size:1.3rem; font-weight:800; display:flex; align-items:center; gap:0.5rem;">
+                        <span>📝</span>
+                        <span>My Personal Notes for this Topic</span>
+                    </h3>
+                    <span style="font-size:0.8rem; color:var(--text-muted);" id="notesCountBadge">0 Notes Saved</span>
+                </div>
+
+                <!-- ADD NOTE INPUT FORM -->
+                <div class="card" style="margin-bottom:1.25rem; background:rgba(15, 23, 42, 0.5); border-color:var(--border-color);">
+                    <textarea id="newNoteInput" rows="3" class="note-textarea" placeholder="Type your personal key insights, code snippets, or revision notes for this topic..."></textarea>
+                    <div style="display:flex; justify-content:flex-end; margin-top:0.75rem;">
+                        <button onclick="addTopicNote()" class="btn btn-sm btn-primary">➕ Add Personal Note</button>
+                    </div>
+                </div>
+
+                <!-- NOTES LIST CONTAINER -->
+                <div id="topicNotesList"></div>
+            </div>
+
+            <!-- TOPIC LEETCODE PRACTICE PROBLEMS SECTION -->
             <div class="topic-practice-section">
-                <h3 style="font-size:1.3rem; font-weight:800; margin-bottom:1rem;">Practice Questions for this Topic</h3>
+                <h3 style="font-size:1.3rem; font-weight:800; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
+                    <span>💻</span>
+                    <span>LeetCode Practice Problems for this Topic</span>
+                </h3>
                 <div id="topicPracticeList"></div>
             </div>
         </main>
@@ -124,6 +128,7 @@
     <script src="/static/js/voice.js?v=2.2"></script>
     <script src="/static/js/ai-chat.js?v=2.2"></script>
     <script src="/static/js/topics-data.js?v=2.2"></script>
+    <script src="/static/js/sweetalert2.all.min.js?v=2.2"></script>
     <script src="/static/js/learning.js?v=2.2"></script>
 </body>
 </html>

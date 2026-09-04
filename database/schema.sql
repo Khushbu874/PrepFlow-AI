@@ -1,207 +1,170 @@
--- PrepFlow AI Database Schema for Supabase (PostgreSQL)
+-- =============================================================
+-- PREPFLOW AI - CLEAN PRODUCTION SUPABASE (POSTGRESQL) SCHEMA
+-- Modules Supported: Dashboard, Learning Hub, LeetCode Progress, Personal Notes, AI Assistant
+-- =============================================================
 
--- Enable UUID extension
+-- -------------------------------------------------------------
+-- 0. CLEANUP LEGACY & OLD TABLES (DROP IF EXISTS CASCADE)
+-- -------------------------------------------------------------
+DROP TABLE IF EXISTS public.ai_conversations CASCADE;
+DROP TABLE IF EXISTS public.user_topic_notes CASCADE;
+DROP TABLE IF EXISTS public.user_solved_questions CASCADE;
+DROP TABLE IF EXISTS public.user_bookmarks CASCADE;
+DROP TABLE IF EXISTS public.user_topic_progress CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
+
+-- Drop obsolete legacy tables if they exist
+DROP TABLE IF EXISTS public.revisions CASCADE;
+DROP TABLE IF EXISTS public.behavioral_answers CASCADE;
+DROP TABLE IF EXISTS public.assessment_attempts CASCADE;
+DROP TABLE IF EXISTS public.assessment_questions CASCADE;
+DROP TABLE IF EXISTS public.assessments CASCADE;
+DROP TABLE IF EXISTS public.user_question_progress CASCADE;
+DROP TABLE IF EXISTS public.practice_questions CASCADE;
+DROP TABLE IF EXISTS public.content_blocks CASCADE;
+DROP TABLE IF EXISTS public.topics CASCADE;
+DROP TABLE IF EXISTS public.subjects CASCADE;
+DROP TABLE IF EXISTS public.categories CASCADE;
+DROP TABLE IF EXISTS public.users CASCADE;
+
+-- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- 1. USERS TABLE
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL DEFAULT 'user', -- 'admin' or 'user'
+-- -------------------------------------------------------------
+-- 1. PROFILES TABLE (Linked with Supabase auth.users)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT,
+    full_name TEXT,
     avatar_url TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    target_role TEXT DEFAULT 'Software Engineer',
+    target_company TEXT DEFAULT 'FAANG',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. CATEGORIES TABLE
-CREATE TABLE IF NOT EXISTS categories (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) UNIQUE NOT NULL,
-    description TEXT,
-    icon VARCHAR(100) DEFAULT 'book',
-    display_order INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- -------------------------------------------------------------
+-- 2. USER TOPIC PROGRESS TABLE (Completed / In Progress Topics)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.user_topic_progress (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    topic_id TEXT NOT NULL,
+    status TEXT CHECK (status IN ('not_started', 'in_progress', 'completed')) DEFAULT 'completed',
+    completed_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT unique_user_topic UNIQUE (user_id, topic_id)
 );
 
--- 3. SUBJECTS TABLE
-CREATE TABLE IF NOT EXISTS subjects (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    category_id UUID NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) UNIQUE NOT NULL,
-    description TEXT,
-    icon VARCHAR(100) DEFAULT 'folder',
-    display_order INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- -------------------------------------------------------------
+-- 3. USER BOOKMARKS TABLE (Saved Lessons / Topics)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.user_bookmarks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    topic_id TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT unique_user_bookmark UNIQUE (user_id, topic_id)
 );
 
--- 4. TOPICS TABLE
-CREATE TABLE IF NOT EXISTS topics (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
-    parent_topic_id UUID REFERENCES topics(id) ON DELETE SET NULL,
-    title VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) UNIQUE NOT NULL,
-    description TEXT,
-    difficulty VARCHAR(50) DEFAULT 'Medium', -- 'Beginner', 'Easy', 'Medium', 'Hard', 'Advanced'
-    display_order INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- -------------------------------------------------------------
+-- 4. USER SOLVED LEETCODE QUESTIONS TABLE
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.user_solved_questions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    question_title TEXT NOT NULL,
+    topic_id TEXT,
+    solved_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT unique_user_solved_q UNIQUE (user_id, question_title)
 );
 
--- 5. CONTENT BLOCKS TABLE (Modular Block System)
-CREATE TABLE IF NOT EXISTS content_blocks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    topic_id UUID NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
-    block_type VARCHAR(50) NOT NULL, 
-    -- block_type options: 'explanation', 'concept', 'example', 'code', 'diagram', 'step_by_step', 'dry_run', 'complexity', 'mistakes', 'tips'
-    content TEXT NOT NULL, -- Main text or JSON string depending on block_type
-    metadata JSONB DEFAULT '{}'::jsonb, -- e.g., {"language": "python", "diagram_type": "mermaid", "time_complexity": "O(log n)"}
-    display_order INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- -------------------------------------------------------------
+-- 5. USER TOPIC PERSONAL NOTES TABLE (Add, Edit, Delete Notes)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.user_topic_notes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    topic_id TEXT NOT NULL,
+    note_text TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 6. PRACTICE QUESTIONS TABLE
-CREATE TABLE IF NOT EXISTS practice_questions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    topic_id UUID REFERENCES topics(id) ON DELETE CASCADE,
-    category_slug VARCHAR(100) DEFAULT 'dsa', -- 'dsa', 'system-design', etc.
-    title VARCHAR(255) NOT NULL,
-    difficulty VARCHAR(50) NOT NULL DEFAULT 'Easy', -- 'Easy', 'Medium', 'Hard'
-    description TEXT,
-    platform VARCHAR(100) DEFAULT 'LeetCode', -- 'LeetCode', 'GeeksforGeeks', 'HackerRank', 'Custom'
-    external_url TEXT,
-    hints JSONB DEFAULT '[]'::jsonb, -- Hints for System Design practice
-    solution_reference TEXT, -- Reference solution or architectural notes
-    display_order INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- -------------------------------------------------------------
+-- 6. AI CONVERSATIONS LOG TABLE
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.ai_conversations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    topic_id TEXT,
+    user_message TEXT NOT NULL,
+    ai_response TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. USER QUESTION PROGRESS TABLE
-CREATE TABLE IF NOT EXISTS user_question_progress (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    question_id UUID NOT NULL REFERENCES practice_questions(id) ON DELETE CASCADE,
-    status VARCHAR(50) NOT NULL DEFAULT 'not_started', -- 'not_started', 'attempted', 'solved', 'revision'
-    notes TEXT,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, question_id)
-);
+-- -------------------------------------------------------------
+-- INDEXES FOR MAXIMUM SPEED & HIGH PERFORMANCE
+-- -------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_progress_user ON public.user_topic_progress(user_id);
+CREATE INDEX IF NOT EXISTS idx_bookmarks_user ON public.user_bookmarks(user_id);
+CREATE INDEX IF NOT EXISTS idx_solved_q_user ON public.user_solved_questions(user_id);
+CREATE INDEX IF NOT EXISTS idx_notes_user_topic ON public.user_topic_notes(user_id, topic_id);
+CREATE INDEX IF NOT EXISTS idx_ai_conv_user ON public.ai_conversations(user_id);
 
--- 8. ASSESSMENTS TABLE
-CREATE TABLE IF NOT EXISTS assessments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    topic_id UUID REFERENCES topics(id) ON DELETE SET NULL,
-    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    time_limit_minutes INT DEFAULT 15,
-    pass_mark_percentage INT DEFAULT 70,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+-- -------------------------------------------------------------
+-- ROW LEVEL SECURITY (RLS) POLICIES FOR SUPABASE SECURE ACCESS
+-- -------------------------------------------------------------
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_topic_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_bookmarks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_solved_questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_topic_notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_conversations ENABLE ROW LEVEL SECURITY;
 
--- 9. ASSESSMENT QUESTIONS TABLE
-CREATE TABLE IF NOT EXISTS assessment_questions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    assessment_id UUID NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
-    question_type VARCHAR(50) NOT NULL DEFAULT 'mcq', -- 'mcq', 'true_false', 'multiple_select', 'scenario', 'short_answer'
-    question TEXT NOT NULL,
-    options JSONB DEFAULT '[]'::jsonb, -- Array of string options
-    correct_answer JSONB NOT NULL, -- String or array of correct option indexes/texts
-    explanation TEXT,
-    topic_tag VARCHAR(255), -- Map back to specific weak topic for recommendations
-    display_order INT NOT NULL DEFAULT 0
-);
+-- Profiles Policies
+CREATE POLICY "Users can view own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
--- 10. ASSESSMENT ATTEMPTS TABLE
-CREATE TABLE IF NOT EXISTS assessment_attempts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    assessment_id UUID NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
-    score INT NOT NULL,
-    total_questions INT NOT NULL,
-    percentage FLOAT NOT NULL,
-    passed BOOLEAN NOT NULL DEFAULT false,
-    weak_topics JSONB DEFAULT '[]'::jsonb,
-    started_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    completed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+-- Topic Progress Policies
+CREATE POLICY "Users can access own progress" ON public.user_topic_progress FOR ALL USING (auth.uid() = user_id);
 
--- 11. USER TOPIC PROGRESS TABLE
-CREATE TABLE IF NOT EXISTS user_topic_progress (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    topic_id UUID NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
-    status VARCHAR(50) NOT NULL DEFAULT 'not_started', -- 'not_started', 'in_progress', 'completed'
-    progress_percentage INT DEFAULT 0,
-    last_viewed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, topic_id)
-);
+-- Bookmarks Policies
+CREATE POLICY "Users can access own bookmarks" ON public.user_bookmarks FOR ALL USING (auth.uid() = user_id);
 
--- 12. BOOKMARKS & REVISIONS TABLE
-CREATE TABLE IF NOT EXISTS bookmarks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    topic_id UUID NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
-    note TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, topic_id)
-);
+-- Solved Questions Policies
+CREATE POLICY "Users can access own solved questions" ON public.user_solved_questions FOR ALL USING (auth.uid() = user_id);
 
-CREATE TABLE IF NOT EXISTS revisions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    topic_id UUID NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
-    reason TEXT, -- 'low_assessment_score', 'flagged_practice', 'user_marked'
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, topic_id)
-);
+-- Notes Policies
+CREATE POLICY "Users can access own topic notes" ON public.user_topic_notes FOR ALL USING (auth.uid() = user_id);
 
--- 13. BEHAVIORAL ANSWERS TABLE
-CREATE TABLE IF NOT EXISTS behavioral_answers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    question_title VARCHAR(255) NOT NULL,
-    answer TEXT NOT NULL,
-    ai_feedback JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+-- AI Conversations Policies
+CREATE POLICY "Users can access own AI chats" ON public.ai_conversations FOR ALL USING (auth.uid() = user_id);
 
--- 14. AI CONVERSATIONS TABLE
-CREATE TABLE IF NOT EXISTS ai_conversations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    topic_id UUID REFERENCES topics(id) ON DELETE SET NULL,
-    message TEXT NOT NULL,
-    response TEXT NOT NULL,
-    context JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+-- -------------------------------------------------------------
+-- AUTOMATIC NEW USER TRIGGER FOR SUPABASE AUTH
+-- -------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.profiles (id, email, full_name, avatar_url)
+    VALUES (
+        new.id,
+        new.email,
+        COALESCE(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+        new.raw_user_meta_data->>'avatar_url'
+    )
+    ON CONFLICT (id) DO NOTHING;
+    RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- INDEXES FOR PERFORMANCE
-CREATE INDEX IF NOT EXISTS idx_subjects_category ON subjects(category_id);
-CREATE INDEX IF NOT EXISTS idx_topics_subject ON topics(subject_id);
-CREATE INDEX IF NOT EXISTS idx_content_blocks_topic ON content_blocks(topic_id);
-CREATE INDEX IF NOT EXISTS idx_practice_questions_topic ON practice_questions(topic_id);
-CREATE INDEX IF NOT EXISTS idx_user_question_prog ON user_question_progress(user_id, question_id);
-CREATE INDEX IF NOT EXISTS idx_user_topic_prog ON user_topic_progress(user_id, topic_id);
-
--- ROW LEVEL SECURITY (RLS) POLICIES
-ALTER TABLE user_question_progress ENABLE ROW LEVEL SECURITY;
-ALTER TABLE assessment_attempts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_topic_progress ENABLE ROW LEVEL SECURITY;
-ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE revisions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE behavioral_answers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ai_conversations ENABLE ROW LEVEL SECURITY;
-
--- Default policies (Users manage their own records)
-CREATE POLICY user_question_prog_policy ON user_question_progress FOR ALL USING (user_id = auth.uid());
-CREATE POLICY assessment_attempts_policy ON assessment_attempts FOR ALL USING (user_id = auth.uid());
-CREATE POLICY user_topic_prog_policy ON user_topic_progress FOR ALL USING (user_id = auth.uid());
-CREATE POLICY bookmarks_policy ON bookmarks FOR ALL USING (user_id = auth.uid());
-CREATE POLICY revisions_policy ON revisions FOR ALL USING (user_id = auth.uid());
-CREATE POLICY behavioral_answers_policy ON behavioral_answers FOR ALL USING (user_id = auth.uid());
-CREATE POLICY ai_conversations_policy ON ai_conversations FOR ALL USING (user_id = auth.uid());
+-- Recreate Trigger
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from app.config import settings
 from app.database import init_db
-from app.api import auth, categories, subjects, topics, content, practice, assessments, progress, ai
+from app.api import auth, categories, subjects, topics, content, progress, ai
 
 
 # Initialize DB and seed tables on backend load
@@ -44,8 +44,6 @@ app.include_router(categories.router, prefix=settings.API_PREFIX)
 app.include_router(subjects.router, prefix=settings.API_PREFIX)
 app.include_router(topics.router, prefix=settings.API_PREFIX)
 app.include_router(content.router, prefix=settings.API_PREFIX)
-app.include_router(practice.router, prefix=settings.API_PREFIX)
-app.include_router(assessments.router, prefix=settings.API_PREFIX)
 app.include_router(progress.router, prefix=settings.API_PREFIX)
 app.include_router(ai.router, prefix=settings.API_PREFIX)
 

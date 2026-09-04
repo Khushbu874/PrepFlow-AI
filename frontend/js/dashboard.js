@@ -99,9 +99,20 @@ async function loadDashboardData(userId) {
         document.getElementById('completedTopicsCountText').innerText = completedTopicsCount;
         document.getElementById('totalTopicsMetaText').innerText = `${completedTopicsCount} / ${totalTopicsCount} Topics Completed`;
 
-        document.getElementById('solvedCountText').innerText = dashboardData.solved_count || 0;
+        // Calculate solved LeetCode questions from localStorage set
+        let solvedQuestionsCount = 0;
+        try {
+            const key = userId ? `prepflow_solved_q_${userId}` : 'prepflow_solved_q_guest';
+            const solvedSet = JSON.parse(localStorage.getItem(key) || '[]');
+            solvedQuestionsCount = Array.isArray(solvedSet) ? solvedSet.length : (dashboardData.solved_count || 0);
+        } catch (e) {
+            solvedQuestionsCount = dashboardData.solved_count || 0;
+        }
+
+        if (document.getElementById('solvedQuestionsCountText')) {
+            document.getElementById('solvedQuestionsCountText').innerText = solvedQuestionsCount;
+        }
         document.getElementById('revisionCountText').innerText = bookmarkedTopicIds.size || dashboardData.revision_count || 0;
-        document.getElementById('streakDaysText').innerText = `${dashboardData.learning_streak_days || 5} Days`;
 
         // 5. Render Resume Learning Hero Banner
         const resumeContainer = document.getElementById('resumeLearningContainer');
@@ -147,48 +158,75 @@ async function loadDashboardData(userId) {
             `).join('');
         }
 
-        // 7. Render Bookmarks & Weak Topics List
-        const weakContainer = document.getElementById('weakTopicsList');
-        if (weakContainer) {
-            let bookmarksList = [];
+        // 7. Render Bookmarked Topics List
+        const bookmarkedContainer = document.getElementById('weakTopicsList');
+        if (bookmarkedContainer) {
+            let bookmarkedTopicIds = new Set();
+            
+            // Check localStorage cache first
             try {
-                bookmarksList = await apiFetch(`/progress/bookmarks/${userId}`);
-            } catch (e) {
-                bookmarksList = [];
-            }
+                const cachedBook = JSON.parse(localStorage.getItem(`prepflow_book_${userId}`) || '[]');
+                if (Array.isArray(cachedBook)) {
+                    cachedBook.forEach(id => bookmarkedTopicIds.add(id));
+                }
+            } catch (e) {}
 
-            if (bookmarksList.length === 0 && (!dashboardData.weak_topics || dashboardData.weak_topics.length === 0)) {
-                weakContainer.innerHTML = `<p style="font-size:0.9rem; color:var(--text-muted); padding:0.5rem 0;">No bookmarked or flagged topics yet. Click "☆ Bookmark" in any lesson to add it here!</p>`;
-            } else {
-                let html = '';
-                bookmarksList.forEach(b => {
-                    html += `
-                        <div style="display:flex; justify-content:space-between; align-items:center; padding:0.65rem 0; border-bottom:1px solid var(--border-color); flex-wrap:wrap; gap:0.5rem;">
-                            <div>
-                                <span class="badge badge-medium" style="font-size:0.7rem;">★ Bookmarked</span>
-                                <strong style="font-size:0.92rem; margin-left:0.4rem;">${b.topic_title}</strong>
-                                <span style="font-size:0.78rem; color:var(--text-muted); margin-left:0.4rem;">(${b.subject_name})</span>
-                            </div>
-                            <a href="/learn.html?topic=${b.topic_slug}" class="btn btn-sm btn-outline">Revise →</a>
-                        </div>
-                    `;
-                });
-
-                if (dashboardData.weak_topics) {
-                    dashboardData.weak_topics.forEach(w => {
-                        html += `
-                            <div style="display:flex; justify-content:space-between; align-items:center; padding:0.65rem 0; border-bottom:1px solid var(--border-color); flex-wrap:wrap; gap:0.5rem;">
-                                <div>
-                                    <span class="badge badge-hard" style="font-size:0.7rem;">⚠️ Review Needed</span>
-                                    <strong style="font-size:0.92rem; margin-left:0.4rem;">${w.topic_title}</strong>
-                                    <span style="font-size:0.78rem; color:var(--text-muted); margin-left:0.4rem;">(${w.reason})</span>
-                                </div>
-                                <a href="/learn.html?topic=${w.topic_slug}" class="btn btn-sm btn-outline">Revise →</a>
-                            </div>
-                        `;
+            // Fetch from backend API
+            try {
+                const apiBookmarks = await apiFetch(`/progress/bookmarks/${userId}`);
+                if (Array.isArray(apiBookmarks)) {
+                    apiBookmarks.forEach(b => {
+                        if (b.topic_id) bookmarkedTopicIds.add(b.topic_id);
+                        if (b.topic_slug) bookmarkedTopicIds.add(b.topic_slug);
                     });
                 }
-                weakContainer.innerHTML = html;
+            } catch (e) {
+                console.warn("Could not fetch API bookmarks:", e);
+            }
+
+            // Resolve bookmarked topic details from PREPFLOW_TOPICS_DATA
+            const resolvedBookmarks = [];
+            if (window.PREPFLOW_TOPICS_DATA && window.PREPFLOW_TOPICS_DATA[0]) {
+                const subcategories = window.PREPFLOW_TOPICS_DATA[0].subcategories || [];
+                subcategories.forEach(sub => {
+                    (sub.topics || []).forEach(t => {
+                        if (bookmarkedTopicIds.has(t.id) || bookmarkedTopicIds.has(t.slug)) {
+                            resolvedBookmarks.push({
+                                title: t.title,
+                                slug: t.slug,
+                                subjectName: sub.name,
+                                difficulty: t.difficulty || 'Medium'
+                            });
+                        }
+                    });
+                });
+            }
+
+            // Update Overview Card 4 Count
+            if (document.getElementById('revisionCountText')) {
+                document.getElementById('revisionCountText').innerText = resolvedBookmarks.length;
+            }
+
+            if (resolvedBookmarks.length === 0) {
+                bookmarkedContainer.innerHTML = `
+                    <div style="text-align:center; padding:1.5rem 1rem; color:var(--text-muted);">
+                        <p style="font-size:0.92rem; margin-bottom:0.5rem;">No bookmarked topics yet.</p>
+                        <p style="font-size:0.8rem; color:var(--text-secondary);">Click <strong>"☆ Bookmark"</strong> in any lesson to add it to your quick review list here!</p>
+                    </div>
+                `;
+            } else {
+                bookmarkedContainer.innerHTML = resolvedBookmarks.map(b => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 0; border-bottom:1px solid var(--border-color); flex-wrap:wrap; gap:0.5rem;">
+                        <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                            <span class="badge ${b.difficulty === 'Easy' ? 'badge-easy' : (b.difficulty === 'Hard' ? 'badge-hard' : 'badge-medium')}" style="font-size:0.72rem;">
+                                ${b.difficulty}
+                            </span>
+                            <strong style="font-size:0.92rem; color:var(--text-primary);">${b.title}</strong>
+                            <span style="font-size:0.78rem; color:var(--text-muted);">(${b.subjectName})</span>
+                        </div>
+                        <a href="/learn.html?topic=${b.slug}" class="btn btn-sm btn-outline">Study Lesson →</a>
+                    </div>
+                `).join('');
             }
         }
     } catch (err) {

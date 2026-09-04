@@ -56,6 +56,18 @@ def register(req: RegisterRequest):
         VALUES (?, ?, ?, ?, 'user', ?, ?)
     """, (user_id, email, hashed, name, avatar, now))
 
+    try:
+        cursor.execute("""
+            INSERT INTO profiles (id, email, full_name, avatar_url, password_hash, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (id) DO UPDATE SET 
+                full_name = EXCLUDED.full_name, 
+                avatar_url = EXCLUDED.avatar_url,
+                password_hash = EXCLUDED.password_hash
+        """, (user_id, email, name, avatar, hashed, now, now))
+    except Exception:
+        pass
+
     conn.commit()
     conn.close()
 

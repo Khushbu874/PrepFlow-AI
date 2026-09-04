@@ -97,12 +97,9 @@ Server run hone ke baad apne browser me open karein:
 
 | Page / Feature | URL |
 |---|---|
-| 🏠 **Main App (Frontend)** | [http://127.0.0.1:8000](http://127.0.0.1:8000) |
+| 🏠 **Main App (Landing)** | [http://127.0.0.1:8000](http://127.0.0.1:8000) |
+| 📊 **User Dashboard** | [http://127.0.0.1:8000/dashboard.html](http://127.0.0.1:8000/dashboard.html) |
 | 📖 **Interactive Learning Hub** | [http://127.0.0.1:8000/learn.html](http://127.0.0.1:8000/learn.html) |
-| 💻 **Practice Portal (DSA/System Design)** | [http://127.0.0.1:8000/practice.html](http://127.0.0.1:8000/practice.html) |
-| 📝 **Assessments & Quiz** | [http://127.0.0.1:8000/assessment.html](http://127.0.0.1:8000/assessment.html) |
-| 🤖 **AI Mock Interview** | [http://127.0.0.1:8000/mock-interview.html](http://127.0.0.1:8000/mock-interview.html) |
-| 📊 **Progress & Analytics** | [http://127.0.0.1:8000/progress.html](http://127.0.0.1:8000/progress.html) |
 | ⚙️ **Admin Dashboard** | [http://127.0.0.1:8000/admin/dashboard.html](http://127.0.0.1:8000/admin/dashboard.html) |
 | 📑 **Backend API Documentation (Swagger)** | [http://127.0.0.1:8000/api/docs](http://127.0.0.1:8000/api/docs) |
 

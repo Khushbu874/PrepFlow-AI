@@ -62,12 +62,6 @@ MyNotes/
     ├── login.html             ← Authentication portal
     ├── dashboard.html         ← Personalized user dashboard
     ├── learn.html             ← 3-Column Learning Hub
-    ├── practice.html          ← DSA + System Design practice portal
-    ├── assessment.html        ← Quiz runner with timed sessions
-    ├── progress.html          ← Analytics dashboard
-    ├── revision.html          ← Revision mode (bookmarks + weak areas)
-    ├── behavioral.html        ← STAR method practice + AI feedback
-    ├── mock-interview.html    ← AI conversational mock interview
     ├── admin/
     │   └── dashboard.html     ← Admin management portal
     ├── css/
@@ -80,12 +74,7 @@ MyNotes/
         ├── auth.js            ← Session management + role guards
         ├── dashboard.js       ← Dashboard data loader
         ├── learning.js        ← Content block renderer + voice
-        ├── practice.js        ← Practice tracker + filter
-        ├── assessment.js      ← Quiz engine + auto-grader
-        ├── progress.js        ← Analytics + revision mode
         ├── ai-chat.js         ← Context-aware AI conversation
-        ├── behavioral.js      ← STAR answer + AI feedback
-        ├── mock-interview.js  ← Mock interview simulator
         ├── voice.js           ← SpeechSynthesis TTS controller
         └── admin.js           ← Admin CRUD + AI generator
 ```
@@ -119,38 +108,12 @@ MyNotes/
 | 🎯 Interview Insights | Top interview tips & pitfalls |
 | ❓ Quiz Me | Test question on current topic |
 
-### 🏋️ DSA Practice Tracker
-- Multi-platform links: LeetCode, GFG, HackerRank
-- Status per user: `Not Started` → `Attempted` → `Solved ✅` → `Need Revision ⚠️`
-- System Design exercises with expandable hints
-
-### 📝 Assessment Engine
-- MCQ, True/False, Multiple Select question types
-- Real-time countdown timer
-- Automated scoring + correct answer explanations
-- Weak topic identification → auto-queued for revision
-
-### 🎯 Behavioral & STAR Prep
-- STAR framework breakdown (Situation, Task, Action, Result)
-- Curated HR question bank
-- AI analysis: clarity score, structure rating, improvement suggestions
-
-### 🎙️ AI Mock Interview Simulator
-- Track types: DSA, System Design, CS Fundamentals, Behavioral
-- Adaptive follow-up questions (4 turns)
-- Post-interview report: score, strong areas, weak areas, revision list
-
 ### 📊 Progress & Analytics
 - Overall % preparation metric
 - Per-category progress bars
-- Questions solved / attempted / revision counts
 - Learning streak tracker
 - Resume from last-viewed topic
-
-### 🔖 Revision Mode
 - Bookmarked topics library
-- Auto-flagged weak topics from low assessment scores
-- Quick "Revise →" navigation
 
 ### 🛠️ Admin Portal
 - Category, Subject, Topic creation (full CRUD)
@@ -169,16 +132,10 @@ MyNotes/
 | `GET` | `/api/categories` | List all categories |
 | `GET` | `/api/categories/{slug}/tree` | Category hierarchy tree |
 | `GET` | `/api/topics/{slug}` | Topic detail + content blocks |
-| `GET` | `/api/practice/questions` | Filtered practice questions |
-| `POST` | `/api/practice/status` | Update question solve status |
-| `GET` | `/api/assessments` | List assessments |
-| `POST` | `/api/assessments/submit` | Submit & auto-grade quiz |
 | `GET` | `/api/progress/dashboard/{user_id}` | Dashboard metrics |
 | `POST` | `/api/progress/bookmark` | Toggle topic bookmark |
 | `POST` | `/api/ai/ask` | Context-aware AI tutor Q&A |
-| `POST` | `/api/ai/behavioral/feedback` | STAR answer evaluation |
 | `POST` | `/api/ai/admin/generate-content` | AI block draft generator |
-| `POST` | `/api/ai/mock-interview/step` | Mock interview conversation |
 | `GET` | `/api/docs` | Interactive Swagger API docs |
 
 ---

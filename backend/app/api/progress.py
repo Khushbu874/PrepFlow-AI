@@ -1,9 +1,11 @@
+# PrepFlow AI - Clean Progress & Dashboard API Router
+
 from fastapi import APIRouter, HTTPException
 import json
 import uuid
 from datetime import datetime
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from app.database import get_db_connection
 
 router = APIRouter(prefix="/progress", tags=["Progress"])
@@ -11,115 +13,77 @@ router = APIRouter(prefix="/progress", tags=["Progress"])
 class BookmarkToggle(BaseModel):
     user_id: str
     topic_id: str
-    note: Optional[str] = None
 
 class TopicProgressToggle(BaseModel):
     user_id: str
     topic_id: str
     status: Optional[str] = "completed"
 
-class RevisionToggle(BaseModel):
+class SolvedQuestionToggle(BaseModel):
+    user_id: str
+    question_title: str
+    topic_id: Optional[str] = None
+
+class TopicNoteCreate(BaseModel):
     user_id: str
     topic_id: str
-    reason: Optional[str] = "User Flagged"
+    note_text: str
+
+class TopicNoteUpdate(BaseModel):
+    note_text: str
+
 
 @router.get("/dashboard/{user_id}")
 def get_user_dashboard(user_id: str):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 1. Questions solved stats
-    cursor.execute("SELECT COUNT(*) FROM user_question_progress WHERE user_id = ? AND status = 'solved'", (user_id,))
-    solved_count = cursor.fetchone()[0]
-    
-    cursor.execute("SELECT COUNT(*) FROM user_question_progress WHERE user_id = ? AND status = 'attempted'", (user_id,))
-    attempted_count = cursor.fetchone()[0]
-    
-    cursor.execute("SELECT COUNT(*) FROM user_question_progress WHERE user_id = ? AND status = 'revision'", (user_id,))
-    revision_count = cursor.fetchone()[0]
-    
-    cursor.execute("SELECT COUNT(*) FROM practice_questions")
-    total_questions = cursor.fetchone()[0] or 1
-    
-    # 2. Category progress percentages
-    cursor.execute("SELECT id, name, slug FROM categories ORDER BY display_order ASC")
-    categories = cursor.fetchall()
-    
-    category_progress = []
-    for c in categories:
-        # Get total topics under category
-        cursor.execute("""
-            SELECT COUNT(t.id) 
-            FROM topics t 
-            JOIN subjects s ON t.subject_id = s.id 
-            WHERE s.category_id = ?
-        """, (c["id"],))
-        tot_topics = cursor.fetchone()[0] or 1
-        
-        # Get completed topics by user under category
-        cursor.execute("""
-            SELECT COUNT(utp.id) 
-            FROM user_topic_progress utp 
-            JOIN topics t ON utp.topic_id = t.id 
-            JOIN subjects s ON t.subject_id = s.id 
-            WHERE utp.user_id = ? AND s.category_id = ? AND utp.status = 'completed'
-        """, (user_id, c["id"]))
-        comp_topics = cursor.fetchone()[0]
-        
-        percentage = round((comp_topics / tot_topics * 100), 1)
-        category_progress.append({
-            "category_id": c["id"],
-            "name": c["name"],
-            "slug": c["slug"],
-            "completed_topics": comp_topics,
-            "total_topics": tot_topics,
-            "percentage": percentage
-        })
-        
-    # Overall Progress
-    overall_percentage = round(sum(cp["percentage"] for cp in category_progress) / len(category_progress), 1) if category_progress else 0
-    
-    # 3. Last viewed topic (Resume Learning)
-    cursor.execute("""
-        SELECT utp.*, t.title as topic_title, t.slug as topic_slug, s.name as subject_name 
-        FROM user_topic_progress utp 
-        JOIN topics t ON utp.topic_id = t.id 
-        JOIN subjects s ON t.subject_id = s.id 
-        WHERE utp.user_id = ? 
-        ORDER BY utp.last_viewed_at DESC LIMIT 1
-    """, (user_id,))
-    last_viewed = cursor.fetchone()
-    
-    resume_topic = dict(last_viewed) if last_viewed else {
-        "topic_title": "Binary Search & Search Space",
-        "topic_slug": "binary-search",
-        "subject_name": "Binary Search & Searching",
-        "progress_percentage": 65
-    }
-    
-    # 4. Weak topics list
-    cursor.execute("""
-        SELECT r.*, t.title as topic_title, t.slug as topic_slug 
-        FROM revisions r 
-        JOIN topics t ON r.topic_id = t.id 
-        WHERE r.user_id = ? 
-        ORDER BY r.created_at DESC LIMIT 5
-    """, (user_id,))
-    weak_topics = [dict(w) for w in cursor.fetchall()]
-    
+    # 1. Solved LeetCode Questions Count
+    solved_count = 0
+    try:
+        cursor.execute("SELECT COUNT(*) FROM user_solved_questions WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        solved_count = row[0] if row else 0
+    except Exception:
+        solved_count = 0
+
+    # 2. Bookmarked Topics Count
+    bookmark_count = 0
+    try:
+        cursor.execute("SELECT COUNT(*) FROM user_bookmarks WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        bookmark_count = row[0] if row else 0
+    except Exception:
+        try:
+            cursor.execute("SELECT COUNT(*) FROM bookmarks WHERE user_id = ?", (user_id,))
+            row = cursor.fetchone()
+            bookmark_count = row[0] if row else 0
+        except Exception:
+            bookmark_count = 0
+
+    # 3. Completed Topics Count
+    completed_topics_count = 0
+    try:
+        cursor.execute("SELECT COUNT(*) FROM user_topic_progress WHERE user_id = ? AND status = 'completed'", (user_id,))
+        row = cursor.fetchone()
+        completed_topics_count = row[0] if row else 0
+    except Exception:
+        completed_topics_count = 0
+
     conn.close()
     
     return {
-        "overall_progress_percentage": overall_percentage,
         "solved_count": solved_count,
-        "attempted_count": attempted_count,
-        "revision_count": revision_count,
-        "total_questions": total_questions,
-        "learning_streak_days": 5, # Active streak
-        "category_progress": category_progress,
-        "resume_topic": resume_topic,
-        "weak_topics": weak_topics
+        "revision_count": bookmark_count,
+        "completed_topics_count": completed_topics_count,
+        "learning_streak_days": 5,
+        "resume_topic": {
+            "topic_title": "Binary Search & Search Space",
+            "topic_slug": "binary-search",
+            "subject_name": "Binary Search & Searching"
+        }
     }
+
 
 @router.post("/bookmark")
 def toggle_bookmark(req: BookmarkToggle):
@@ -127,38 +91,49 @@ def toggle_bookmark(req: BookmarkToggle):
     cursor = conn.cursor()
     now = datetime.utcnow().isoformat()
     
-    cursor.execute("SELECT id FROM bookmarks WHERE user_id = ? AND topic_id = ?", (req.user_id, req.topic_id))
+    table_name = "user_bookmarks"
+    try:
+        cursor.execute("SELECT id FROM user_bookmarks WHERE user_id = ? AND topic_id = ?", (req.user_id, req.topic_id))
+    except Exception:
+        table_name = "bookmarks"
+        cursor.execute("SELECT id FROM bookmarks WHERE user_id = ? AND topic_id = ?", (req.user_id, req.topic_id))
+
     existing = cursor.fetchone()
     
     if existing:
-        cursor.execute("DELETE FROM bookmarks WHERE id = ?", (existing["id"],))
+        cursor.execute(f"DELETE FROM {table_name} WHERE id = ?", (existing["id"],))
         status = "removed"
     else:
-        cursor.execute("""
-            INSERT INTO bookmarks (id, user_id, topic_id, note, created_at)
-            VALUES (?, ?, ?, ?, ?)
-        """, (str(uuid.uuid4()), req.user_id, req.topic_id, req.note, now))
+        cursor.execute(f"""
+            INSERT INTO {table_name} (id, user_id, topic_id, created_at)
+            VALUES (?, ?, ?, ?)
+        """, (str(uuid.uuid4()), req.user_id, req.topic_id, now))
         status = "bookmarked"
         
     conn.commit()
     conn.close()
     return {"status": status, "topic_id": req.topic_id}
 
+
 @router.get("/bookmarks/{user_id}")
 def get_user_bookmarks(user_id: str):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT b.*, t.title as topic_title, t.slug as topic_slug, t.description as topic_description, s.name as subject_name 
-        FROM bookmarks b 
-        JOIN topics t ON b.topic_id = t.id 
-        JOIN subjects s ON t.subject_id = s.id 
-        WHERE b.user_id = ? 
-        ORDER BY b.created_at DESC
-    """, (user_id,))
-    rows = cursor.fetchall()
+    
+    rows = []
+    try:
+        cursor.execute("SELECT topic_id, created_at FROM user_bookmarks WHERE user_id = ? ORDER BY created_at DESC", (user_id,))
+        rows = cursor.fetchall()
+    except Exception:
+        try:
+            cursor.execute("SELECT topic_id, created_at FROM bookmarks WHERE user_id = ? ORDER BY created_at DESC", (user_id,))
+            rows = cursor.fetchall()
+        except Exception:
+            rows = []
+
     conn.close()
     return [dict(r) for r in rows]
+
 
 @router.post("/topic/toggle-complete")
 def toggle_topic_complete(req: TopicProgressToggle):
@@ -171,52 +146,156 @@ def toggle_topic_complete(req: TopicProgressToggle):
     
     if existing:
         new_status = "not_started" if existing["status"] == "completed" else "completed"
-        pct = 100 if new_status == "completed" else 0
-        cursor.execute("UPDATE user_topic_progress SET status = ?, progress_percentage = ?, last_viewed_at = ? WHERE id = ?", (new_status, pct, now, existing["id"]))
+        cursor.execute("UPDATE user_topic_progress SET status = ?, updated_at = ? WHERE id = ?", (new_status, now, existing["id"]))
     else:
         new_status = "completed"
         cursor.execute("""
-            INSERT INTO user_topic_progress (id, user_id, topic_id, status, progress_percentage, last_viewed_at)
-            VALUES (?, ?, ?, ?, 100, ?)
-        """, (str(uuid.uuid4()), req.user_id, req.topic_id, new_status, now))
+            INSERT INTO user_topic_progress (id, user_id, topic_id, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (str(uuid.uuid4()), req.user_id, req.topic_id, new_status, now, now))
         
     conn.commit()
     conn.close()
     return {"status": new_status, "topic_id": req.topic_id}
 
+
 @router.get("/user-topics/{user_id}")
 def get_user_topics_status(user_id: str):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT topic_id, status, progress_percentage FROM user_topic_progress WHERE user_id = ?", (user_id,))
-    progress_rows = cursor.fetchall()
     
-    cursor.execute("SELECT topic_id FROM bookmarks WHERE user_id = ?", (user_id,))
-    bookmark_rows = cursor.fetchall()
-    
+    completed = []
+    try:
+        cursor.execute("SELECT topic_id FROM user_topic_progress WHERE user_id = ? AND status = 'completed'", (user_id,))
+        completed = [r["topic_id"] for r in cursor.fetchall()]
+    except Exception:
+        pass
+
+    bookmarked = []
+    try:
+        cursor.execute("SELECT topic_id FROM user_bookmarks WHERE user_id = ?", (user_id,))
+        bookmarked = [r["topic_id"] for r in cursor.fetchall()]
+    except Exception:
+        try:
+            cursor.execute("SELECT topic_id FROM bookmarks WHERE user_id = ?", (user_id,))
+            bookmarked = [r["topic_id"] for r in cursor.fetchall()]
+        except Exception:
+            pass
+
     conn.close()
-    
-    completed = [r["topic_id"] for r in progress_rows if r["status"] == "completed"]
-    bookmarked = [r["topic_id"] for r in bookmark_rows]
     
     return {
         "completed_topic_ids": completed,
         "bookmarked_topic_ids": bookmarked
     }
 
-@router.get("/revisions/{user_id}")
-def get_user_revisions(user_id: str):
+
+# -------------------------------------------------------------
+# LEETCODE SOLVED QUESTIONS API ENDPOINTS (DB SYNC)
+# -------------------------------------------------------------
+@router.post("/solved-questions/toggle")
+def toggle_solved_question(req: SolvedQuestionToggle):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT r.*, t.title as topic_title, t.slug as topic_slug, t.description as topic_description, s.name as subject_name 
-        FROM revisions r 
-        JOIN topics t ON r.topic_id = t.id 
-        JOIN subjects s ON t.subject_id = s.id 
-        WHERE r.user_id = ? 
-        ORDER BY r.created_at DESC
-    """, (user_id,))
-    rows = cursor.fetchall()
-    conn.close()
+    now = datetime.utcnow().isoformat()
+
+    try:
+        cursor.execute("SELECT id FROM user_solved_questions WHERE user_id = ? AND question_title = ?", (req.user_id, req.question_title))
+        existing = cursor.fetchone()
+
+        if existing:
+            cursor.execute("DELETE FROM user_solved_questions WHERE id = ?", (existing["id"],))
+            status = "unsolved"
+        else:
+            cursor.execute("""
+                INSERT INTO user_solved_questions (id, user_id, question_title, topic_id, solved_at)
+                VALUES (?, ?, ?, ?, ?)
+            """, (str(uuid.uuid4()), req.user_id, req.question_title, req.topic_id, now))
+            status = "solved"
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        status = "error"
+    finally:
+        conn.close()
+
+    return {"status": status, "question_title": req.question_title}
+
+
+@router.get("/solved-questions/{user_id}")
+def get_user_solved_questions(user_id: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    rows = []
+    try:
+        cursor.execute("SELECT question_title, topic_id, solved_at FROM user_solved_questions WHERE user_id = ?", (user_id,))
+        rows = cursor.fetchall()
+    except Exception:
+        rows = []
+    finally:
+        conn.close()
+
     return [dict(r) for r in rows]
 
+
+# -------------------------------------------------------------
+# PERSONAL TOPIC NOTES API ENDPOINTS (DB SYNC)
+# -------------------------------------------------------------
+@router.get("/notes/{user_id}/{topic_id}")
+def get_topic_notes(user_id: str, topic_id: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    rows = []
+    try:
+        cursor.execute("""
+            SELECT id, user_id, topic_id, note_text, created_at, updated_at 
+            FROM user_topic_notes 
+            WHERE user_id = ? AND topic_id = ? 
+            ORDER BY created_at DESC
+        """, (user_id, topic_id))
+        rows = cursor.fetchall()
+    except Exception:
+        rows = []
+    finally:
+        conn.close()
+
+    return [dict(r) for r in rows]
+
+
+@router.post("/notes")
+def create_topic_note(req: TopicNoteCreate):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    now = datetime.utcnow().isoformat()
+    note_id = str(uuid.uuid4())
+
+    try:
+        cursor.execute("""
+            INSERT INTO user_topic_notes (id, user_id, topic_id, note_text, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (note_id, req.user_id, req.topic_id, req.note_text, now, now))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+    return {"id": note_id, "user_id": req.user_id, "topic_id": req.topic_id, "note_text": req.note_text, "created_at": now}
+
+
+@router.delete("/notes/{note_id}")
+def delete_topic_note_endpoint(note_id: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM user_topic_notes WHERE id = ?", (note_id,))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+    return {"status": "deleted", "note_id": note_id}

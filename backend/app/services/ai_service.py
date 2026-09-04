@@ -87,40 +87,6 @@ class AIService:
             return f"Great question regarding **{topic_title}**! In technical interviews, master the core invariants and edge cases. For instance, always double-check loop boundary conditions (`low <= high`) and ensure zero infinite loops when shifting `low` or `high` boundaries."
 
     @staticmethod
-    async def evaluate_behavioral_answer(question_title: str, answer: str) -> dict:
-        """Evaluate a behavioral interview answer using STAR framework principles."""
-        words = len(answer.split())
-        has_situation = any(k in answer.lower() for k in ["when", "project", "company", "time", "team", "situation", "at my"])
-        has_action = any(k in answer.lower() for k in ["i decided", "i implemented", "i created", "i built", "i analyzed", "action", "i led"])
-        has_result = any(k in answer.lower() for k in ["result", "outcome", "increased", "reduced", "improved", "metric", "%", "saved", "achieved"])
-
-        score = 65
-        if words > 50: score += 10
-        if has_situation: score += 10
-        if has_action: score += 10
-        if has_result: score += 5
-
-        star_breakdown = {
-            "Situation": "Clear context set." if has_situation else "Add specific context on when and where this occurred.",
-            "Task": "Responsibility identified.",
-            "Action": "Good personal initiative highlighted." if has_action else "Focus more on specific technical actions YOU took.",
-            "Result": "Quantifiable outcome mentioned!" if has_result else "Include measurable metrics (e.g. 30% speedup, 0 downtime)."
-        }
-
-        feedback = {
-            "overall_score": min(score, 98),
-            "clarity": "High" if words >= 40 else "Medium",
-            "structure_rating": "Strong STAR structure" if (has_situation and has_action and has_result) else "Needs stronger STAR structure",
-            "star_breakdown": star_breakdown,
-            "improvement_suggestions": [
-                "Quantify your results with concrete numbers (e.g. 'reduced API latency by 35%').",
-                "Ensure 70% of your answer focuses on YOUR specific technical actions rather than general team activities.",
-                "Keep the tone confident, concise, and structured."
-            ]
-        }
-        return feedback
-
-    @staticmethod
     async def generate_structured_content_blocks(topic_name: str, category_name: str, difficulty: str) -> list:
         """Generate structured block array drafts for Admin approval."""
         blocks = [
@@ -156,60 +122,3 @@ class AIService:
             }
         ]
         return blocks
-
-    @staticmethod
-    async def run_mock_interview_step(interview_type: str, difficulty: str, history: list, user_message: str) -> dict:
-        """Handle conversational AI mock interview turns and final feedback generation."""
-        step_count = len(history) // 2 + 1
-        
-        if step_count >= 4 and user_message.lower().strip() in ["end interview", "finish", "done", "complete"]:
-            # Generate final score report
-            report = {
-                "status": "completed",
-                "overall_score": 85,
-                "technical_rating": "Strong Candidate",
-                "communication_rating": "Clear & Concise",
-                "strong_areas": ["Problem Breakdown", "Structured STAR Framework", "Complexity Analysis"],
-                "weak_areas": ["Edge Case Identification", "Sub-optimal Space Complexity"],
-                "recommended_revision": ["Binary Search Edge Cases", "System Design Caching Tradeoffs"],
-                "summary": "You demonstrated solid technical domain knowledge. Make sure to explicitly state edge cases before diving into code."
-            }
-            return report
-
-        # Interview questions sequence per topic
-        if interview_type == "dsa":
-            questions = [
-                "Welcome to your DSA Mock Interview! Let's start: Can you explain how Binary Search works and state its prerequisites?",
-                "Great! Now suppose the input array is rotated (e.g., [4,5,6,7,0,1,2]). How would you modify Binary Search to find the minimum element in O(log N) time?",
-                "Excellent logic! How would your algorithm handle duplicate elements in the rotated array, such as [2, 2, 2, 0, 1, 2]?",
-                "Thank you! What is the worst-case time complexity when duplicates are present, and why?"
-            ]
-        elif interview_type == "system-design":
-            questions = [
-                "Welcome to the System Design Mock Interview. Today's problem: Design a URL Shortener service like TinyURL. What are your functional and non-functional requirements?",
-                "Nice requirements! How would you estimate the read/write QPS and database storage needed for 100 Million URLs per month?",
-                "Solid capacity planning! Would you use Base62 Encoding or a standalone Key Generation Service (KGS) to create short hashes?",
-                "Excellent! How will you handle high read traffic spikes, and what caching eviction policy would you choose?"
-            ]
-        elif interview_type == "cs-fundamentals":
-            questions = [
-                "Welcome! Let's discuss Database Fundamentals. Can you explain the ACID properties of a relational database transaction?",
-                "Good answer! What is the difference between Read Committed and Serializable isolation levels?",
-                "Great! How does an B-Tree index speed up SELECT queries, and what is the trade-off during INSERT/UPDATE operations?"
-            ]
-        else: # Behavioral
-            questions = [
-                "Welcome to the Behavioral Interview! Tell me about a time you faced a difficult technical disagreement with a teammate.",
-                "How did you use data or benchmarks to convince your team to adopt your proposed technical solution?",
-                "What was the quantifiable outcome or impact of that project on your team's workflow?"
-            ]
-
-        next_q_idx = min(step_count, len(questions) - 1)
-        next_question = questions[next_q_idx]
-
-        return {
-            "status": "in_progress",
-            "step": step_count,
-            "total_steps": 4,
-            "interviewer_response": next_question
-        }

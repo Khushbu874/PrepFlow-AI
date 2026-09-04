@@ -20,10 +20,6 @@ function initGlobalHeader() {
     const path = window.location.pathname.toLowerCase();
     let activeKey = 'dashboard';
     if (path.includes('learn.html')) activeKey = 'learn';
-    else if (path.includes('practice.html')) activeKey = 'practice';
-    else if (path.includes('assessment.html')) activeKey = 'assessment';
-    else if (path.includes('behavioral.html')) activeKey = 'behavioral';
-    else if (path.includes('mock-interview.html')) activeKey = 'mock-interview';
     else if (path.includes('dashboard.html') || path === '/' || path.endsWith('/')) activeKey = 'dashboard';
 
     // Get current logged-in user
@@ -48,10 +44,6 @@ function initGlobalHeader() {
             <ul class="nav-links">
                 <li><a href="/dashboard.html" class="nav-item ${activeKey === 'dashboard' ? 'active' : ''}">Dashboard</a></li>
                 <li><a href="/learn.html" class="nav-item ${activeKey === 'learn' ? 'active' : ''}">Learning Hub</a></li>
-                <li><a href="/practice.html" class="nav-item ${activeKey === 'practice' ? 'active' : ''}">Practice</a></li>
-                <li><a href="/assessment.html" class="nav-item ${activeKey === 'assessment' ? 'active' : ''}">Assessments</a></li>
-                <li><a href="/behavioral.html" class="nav-item ${activeKey === 'behavioral' ? 'active' : ''}">Behavioral</a></li>
-                <li><a href="/mock-interview.html" class="nav-item ${activeKey === 'mock-interview' ? 'active' : ''}">Mock Interview</a></li>
             </ul>
 
             <div class="nav-actions" id="navActions" style="display:flex; align-items:center; gap:0.6rem;">

@@ -28,20 +28,20 @@ document.addEventListener('DOMContentLoaded', async () => {
  * ------------------------------------------------------------- */
 async function initUserTopicState() {
     const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    if (user && user.id) {
-        try {
-            const data = await apiFetch(`/progress/user-topics/${user.id}`);
-            if (data) {
-                userCompletedTopics = new Set(data.completed_topic_ids || []);
-                userBookmarkedTopics = new Set(data.bookmarked_topic_ids || []);
-            }
-        } catch (e) {
-            console.warn("Could not fetch user topics from server, using local cache:", e);
-            const cachedDone = JSON.parse(localStorage.getItem(`prepflow_done_${user.id}`) || '[]');
-            const cachedBook = JSON.parse(localStorage.getItem(`prepflow_book_${user.id}`) || '[]');
-            userCompletedTopics = new Set(cachedDone);
-            userBookmarkedTopics = new Set(cachedBook);
+    const userId = (user && user.id) ? user.id : 'a0000000-0000-0000-0000-000000000002';
+    
+    try {
+        const data = await apiFetch(`/progress/user-topics/${userId}`);
+        if (data) {
+            userCompletedTopics = new Set(data.completed_topic_ids || []);
+            userBookmarkedTopics = new Set(data.bookmarked_topic_ids || []);
         }
+    } catch (e) {
+        console.warn("Could not fetch user topics from server, using local cache:", e);
+        const cachedDone = JSON.parse(localStorage.getItem(`prepflow_done_${userId}`) || '[]');
+        const cachedBook = JSON.parse(localStorage.getItem(`prepflow_book_${userId}`) || '[]');
+        userCompletedTopics = new Set(cachedDone);
+        userBookmarkedTopics = new Set(cachedBook);
     }
 }
 
@@ -160,8 +160,11 @@ function loadTopicBySlug(slug) {
 
     // Render Main Text Explanation & Notes
     renderTopicExplanation(foundTopic);
+    
+    // Render Topic Personal Notes
+    renderTopicNotes(foundTopic.slug);
 
-    // Render Linked Practice Questions
+    // Render Linked LeetCode Practice Questions
     renderPracticeQuestions(foundTopic.practice_questions);
     
     // Close mobile drawer if open
@@ -209,30 +212,33 @@ function updateHeaderButtonStates() {
 async function toggleCompleteCurrentTopic() {
     if (!currentTopicData) return;
     const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    if (!user || !user.id) return;
+    const userId = (user && user.id) ? user.id : 'a0000000-0000-0000-0000-000000000002';
     
-    const topicId = currentTopicData.id;
-    const wasDone = userCompletedTopics.has(topicId);
+    const topicId = currentTopicData.slug || currentTopicData.id;
+    const rawId = currentTopicData.id;
+    const wasDone = userCompletedTopics.has(topicId) || userCompletedTopics.has(rawId);
     
     // Optimistic UI update
     if (wasDone) {
         userCompletedTopics.delete(topicId);
+        if (rawId) userCompletedTopics.delete(rawId);
     } else {
         userCompletedTopics.add(topicId);
+        if (rawId) userCompletedTopics.add(rawId);
     }
     
     updateHeaderButtonStates();
     renderStaticTree(currentTopicData.slug);
     
     // Sync with localStorage
-    localStorage.setItem(`prepflow_done_${user.id}`, JSON.stringify(Array.from(userCompletedTopics)));
+    localStorage.setItem(`prepflow_done_${userId}`, JSON.stringify(Array.from(userCompletedTopics)));
     
-    // Send to Backend
+    // Send to Backend Server & DB
     try {
         await apiFetch('/progress/topic/toggle-complete', {
             method: 'POST',
             body: JSON.stringify({
-                user_id: user.id,
+                user_id: userId,
                 topic_id: topicId,
                 status: wasDone ? 'not_started' : 'completed'
             })
@@ -245,30 +251,33 @@ async function toggleCompleteCurrentTopic() {
 async function toggleBookmarkCurrentTopic() {
     if (!currentTopicData) return;
     const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    if (!user || !user.id) return;
+    const userId = (user && user.id) ? user.id : 'a0000000-0000-0000-0000-000000000002';
     
-    const topicId = currentTopicData.id;
-    const wasBooked = userBookmarkedTopics.has(topicId);
+    const topicId = currentTopicData.slug || currentTopicData.id;
+    const rawId = currentTopicData.id;
+    const wasBooked = userBookmarkedTopics.has(topicId) || userBookmarkedTopics.has(rawId);
     
     // Optimistic UI update
     if (wasBooked) {
         userBookmarkedTopics.delete(topicId);
+        if (rawId) userBookmarkedTopics.delete(rawId);
     } else {
         userBookmarkedTopics.add(topicId);
+        if (rawId) userBookmarkedTopics.add(rawId);
     }
     
     updateHeaderButtonStates();
     renderStaticTree(currentTopicData.slug);
     
     // Sync with localStorage
-    localStorage.setItem(`prepflow_book_${user.id}`, JSON.stringify(Array.from(userBookmarkedTopics)));
+    localStorage.setItem(`prepflow_book_${userId}`, JSON.stringify(Array.from(userBookmarkedTopics)));
     
-    // Send to Backend
+    // Send to Backend Server & DB
     try {
         await apiFetch('/progress/bookmark', {
             method: 'POST',
             body: JSON.stringify({
-                user_id: user.id,
+                user_id: userId,
                 topic_id: topicId
             })
         });
@@ -431,92 +440,7 @@ function renderTopicExplanation(topic) {
     container.innerHTML = html;
 }
 
-/* -------------------------------------------------------------
- * PRACTICE QUESTIONS & INTERACTIVE SOLVE TRACKER
- * ------------------------------------------------------------- */
-function getSolvedQuestionsSet() {
-    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    const key = user && user.id ? `prepflow_solved_q_${user.id}` : 'prepflow_solved_q_guest';
-    try {
-        return new Set(JSON.parse(localStorage.getItem(key) || '[]'));
-    } catch (e) {
-        return new Set();
-    }
-}
 
-function saveSolvedQuestionsSet(solvedSet) {
-    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    const key = user && user.id ? `prepflow_solved_q_${user.id}` : 'prepflow_solved_q_guest';
-    localStorage.setItem(key, JSON.stringify(Array.from(solvedSet)));
-}
-
-function toggleSolveQuestion(qTitle) {
-    const solvedSet = getSolvedQuestionsSet();
-    if (solvedSet.has(qTitle)) {
-        solvedSet.delete(qTitle);
-    } else {
-        solvedSet.add(qTitle);
-    }
-    saveSolvedQuestionsSet(solvedSet);
-    if (currentTopicData && currentTopicData.practice_questions) {
-        renderPracticeQuestions(currentTopicData.practice_questions);
-    }
-}
-
-function renderPracticeQuestions(questions) {
-    const practiceContainer = document.getElementById('topicPracticeList');
-    if (!practiceContainer) return;
-    
-    if (!questions || questions.length === 0) {
-        practiceContainer.innerHTML = `<p style="color:var(--text-muted);">No practice questions linked yet.</p>`;
-        return;
-    }
-
-    const solvedSet = getSolvedQuestionsSet();
-    const totalCount = questions.length;
-    let solvedCount = 0;
-
-    questions.forEach(q => {
-        if (solvedSet.has(q.title)) solvedCount++;
-    });
-
-    const percent = totalCount > 0 ? Math.round((solvedCount / totalCount) * 100) : 0;
-
-    let progressHtml = `
-        <div class="practice-progress-box">
-            <div class="practice-progress-header">
-                <span>🎯 Topic Practice Progress: <strong>${solvedCount} of ${totalCount} Solved</strong></span>
-                <span class="practice-percentage">${percent}%</span>
-            </div>
-            <div class="practice-progress-track">
-                <div class="practice-progress-fill" style="width: ${percent}%;"></div>
-            </div>
-        </div>
-    `;
-
-    let listHtml = questions.map((q, idx) => {
-        const isSolved = solvedSet.has(q.title);
-        const safeTitle = (q.title || '').replace(/'/g, "\\'");
-        return `
-            <div class="practice-card-item ${isSolved ? 'solved' : ''}">
-                <div class="practice-card-left">
-                    <button class="practice-check-btn ${isSolved ? 'checked' : ''}" 
-                            title="${isSolved ? 'Mark as Unsolved' : 'Mark as Solved'}"
-                            onclick="toggleSolveQuestion('${safeTitle}')">
-                        ${isSolved ? '✓' : ''}
-                    </button>
-                    <span class="difficulty-tag difficulty-${q.difficulty}">${q.difficulty}</span>
-                    <span class="practice-title-text">${q.title}</span>
-                </div>
-                <div class="practice-card-right">
-                    ${q.url ? `<a href="${q.url}" target="_blank" class="btn btn-sm btn-outline">Solve on LeetCode ↗</a>` : ''}
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    practiceContainer.innerHTML = progressHtml + listHtml;
-}
 
 /* -------------------------------------------------------------
  * 7. UNIFIED SIDEBAR TOGGLE (DESKTOP COLLAPSE & MOBILE DRAWER)
@@ -611,9 +535,25 @@ window.addEventListener('resize', () => {
 
 function speakCurrentTopic() {
     if (!currentTopicData) return;
-    const textToRead = `${currentTopicData.title}. ${currentTopicData.description || ''}. ${currentTopicData.explanation || ''}`;
+    
+    let blockTexts = [];
+    if (currentTopicData.blocks && Array.isArray(currentTopicData.blocks)) {
+        currentTopicData.blocks.forEach(b => {
+            if (['explanation', 'concept', 'step_by_step', 'tips'].includes(b.block_type)) {
+                if (b.content) blockTexts.push(b.content);
+            }
+        });
+    }
+
+    const fullText = [
+        currentTopicData.title,
+        currentTopicData.description,
+        blockTexts.join('. '),
+        currentTopicData.explanation
+    ].filter(Boolean).join('. ');
+
     if (typeof voiceEngine !== 'undefined') {
-        voiceEngine.speak(textToRead);
+        voiceEngine.togglePlayPause(fullText, currentTopicData.title);
     }
 }
 
@@ -679,3 +619,325 @@ function switchEditorLang(editorId, targetLang) {
     });
 }
 window.switchEditorLang = switchEditorLang;
+
+/* -------------------------------------------------------------
+ * TOPIC LEETCODE PRACTICE PROBLEMS & SOLVE TRACKER
+ * ------------------------------------------------------------- */
+function getSolvedQuestionsSet() {
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    const key = user && user.id ? `prepflow_solved_q_${user.id}` : 'prepflow_solved_q_guest';
+    try {
+        return new Set(JSON.parse(localStorage.getItem(key) || '[]'));
+    } catch (e) {
+        return new Set();
+    }
+}
+
+function saveSolvedQuestionsSet(solvedSet) {
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    const key = user && user.id ? `prepflow_solved_q_${user.id}` : 'prepflow_solved_q_guest';
+    localStorage.setItem(key, JSON.stringify(Array.from(solvedSet)));
+}
+
+async function toggleSolveQuestion(qTitle) {
+    const solvedSet = getSolvedQuestionsSet();
+    if (solvedSet.has(qTitle)) {
+        solvedSet.delete(qTitle);
+    } else {
+        solvedSet.add(qTitle);
+    }
+    saveSolvedQuestionsSet(solvedSet);
+    if (currentTopicData && currentTopicData.practice_questions) {
+        renderPracticeQuestions(currentTopicData.practice_questions);
+    }
+
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    if (user && user.id) {
+        try {
+            await apiFetch('/progress/solved-questions/toggle', {
+                method: 'POST',
+                body: JSON.stringify({
+                    user_id: user.id,
+                    question_title: qTitle,
+                    topic_id: currentTopicData ? currentTopicData.id : null
+                })
+            });
+        } catch (e) {
+            console.warn("Solved question toggle DB sync failed:", e);
+        }
+    }
+}
+
+function renderPracticeQuestions(questions) {
+    const practiceContainer = document.getElementById('topicPracticeList');
+    if (!practiceContainer) return;
+    
+    if (!questions || questions.length === 0) {
+        practiceContainer.innerHTML = `<p style="color:var(--text-muted); font-size:0.9rem;">No LeetCode questions linked to this topic yet.</p>`;
+        return;
+    }
+
+    const solvedSet = getSolvedQuestionsSet();
+    const totalCount = questions.length;
+    let solvedCount = 0;
+
+    questions.forEach(q => {
+        if (solvedSet.has(q.title)) solvedCount++;
+    });
+
+    const percent = totalCount > 0 ? Math.round((solvedCount / totalCount) * 100) : 0;
+
+    let progressHtml = `
+        <div class="practice-progress-box">
+            <div class="practice-progress-header">
+                <span>🎯 Topic Practice Progress: <strong>${solvedCount} of ${totalCount} Solved</strong></span>
+                <span class="practice-percentage">${percent}%</span>
+            </div>
+            <div class="practice-progress-track">
+                <div class="practice-progress-fill" style="width: ${percent}%;"></div>
+            </div>
+        </div>
+    `;
+
+    let listHtml = questions.map((q, idx) => {
+        const isSolved = solvedSet.has(q.title);
+        const safeTitle = (q.title || '').replace(/'/g, "\\'");
+        return `
+            <div class="practice-card-item ${isSolved ? 'solved' : ''}">
+                <div class="practice-card-left">
+                    <button class="practice-check-btn ${isSolved ? 'checked' : ''}" 
+                            title="${isSolved ? 'Mark as Unsolved' : 'Mark as Solved'}"
+                            onclick="toggleSolveQuestion('${safeTitle}')">
+                        ${isSolved ? '✓' : ''}
+                    </button>
+                    <span class="badge ${q.difficulty === 'Easy' ? 'badge-easy' : (q.difficulty === 'Hard' ? 'badge-hard' : 'badge-medium')}">${q.difficulty}</span>
+                    <span class="practice-title-text">${q.title}</span>
+                </div>
+                <div class="practice-card-right">
+                    ${q.url ? `<a href="${q.url}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline">Solve on LeetCode ↗</a>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    practiceContainer.innerHTML = progressHtml + listHtml;
+}
+window.toggleSolveQuestion = toggleSolveQuestion;
+
+/* -------------------------------------------------------------
+ * TOPIC PERSONAL NOTES CONTROLLER (ADD, EDIT, DELETE, LIST)
+ * ------------------------------------------------------------- */
+function getTopicNotesKey(topicSlug) {
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    const uid = user && user.id ? user.id : 'guest';
+    return `prepflow_notes_${uid}_${topicSlug}`;
+}
+
+function getTopicNotes(topicSlug) {
+    const key = getTopicNotesKey(topicSlug);
+    try {
+        return JSON.parse(localStorage.getItem(key) || '[]');
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveTopicNotes(topicSlug, notesArray) {
+    const key = getTopicNotesKey(topicSlug);
+    localStorage.setItem(key, JSON.stringify(notesArray));
+}
+
+function scrollToNotesSection() {
+    const el = document.getElementById('topicNotesSection');
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+function renderTopicNotes(topicSlug) {
+    const slug = topicSlug || (currentTopicData ? currentTopicData.slug : '');
+    if (!slug) return;
+
+    const notesContainer = document.getElementById('topicNotesList');
+    const badge = document.getElementById('notesCountBadge');
+    if (!notesContainer) return;
+
+    const notes = getTopicNotes(slug);
+    if (badge) {
+        badge.innerText = `${notes.length} Note${notes.length === 1 ? '' : 's'} Saved`;
+    }
+
+    if (notes.length === 0) {
+        notesContainer.innerHTML = `
+            <div style="text-align:center; padding:1.25rem; background:rgba(0,0,0,0.15); border:1px dashed var(--border-color); border-radius:var(--radius-sm); color:var(--text-muted); font-size:0.88rem;">
+                No personal notes added for this topic yet. Write your first note above to save key insights for future revision!
+            </div>
+        `;
+        return;
+    }
+
+    notesContainer.innerHTML = notes.map((n, idx) => `
+        <div class="card note-card" id="noteCard_${n.id}">
+            <div class="note-header">
+                <span class="note-timestamp">📅 ${new Date(n.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                <div class="note-actions-btn-group">
+                    <button onclick="startEditTopicNote('${n.id}')" class="btn btn-sm btn-outline btn-icon-note" title="Edit Note">✏️ Edit</button>
+                    <button onclick="deleteTopicNote('${n.id}')" class="btn btn-sm btn-outline btn-icon-note-danger" title="Delete Note">🗑️ Delete</button>
+                </div>
+            </div>
+
+            <!-- DISPLAY VIEW -->
+            <div class="note-content-display" id="noteDisplay_${n.id}">${n.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>")}</div>
+
+            <!-- EDIT VIEW (HIDDEN DEFAULT) -->
+            <div class="note-content-edit" id="noteEditArea_${n.id}" style="display:none; margin-top:0.5rem;">
+                <textarea id="noteEditText_${n.id}" class="note-textarea" rows="3">${n.text}</textarea>
+                <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.5rem;">
+                    <button onclick="cancelEditTopicNote('${n.id}')" class="btn btn-sm btn-secondary">Cancel</button>
+                    <button onclick="saveEditedTopicNote('${n.id}')" class="btn btn-sm btn-primary">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function addTopicNote() {
+    if (!currentTopicData) return;
+    const input = document.getElementById('newNoteInput');
+    if (!input) return;
+
+    const text = input.value.trim();
+    if (!text) {
+        alert("Please write some note text before adding!");
+        return;
+    }
+
+    const slug = currentTopicData.slug;
+    const notes = getTopicNotes(slug);
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    
+    const newNote = {
+        id: 'note_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        text: text,
+        createdAt: new Date().toISOString()
+    };
+
+    notes.unshift(newNote);
+    saveTopicNotes(slug, notes);
+
+    input.value = '';
+    renderTopicNotes(slug);
+
+    if (user && user.id) {
+        try {
+            const serverNote = await apiFetch('/progress/notes', {
+                method: 'POST',
+                body: JSON.stringify({
+                    user_id: user.id,
+                    topic_id: slug,
+                    note_text: text
+                })
+            });
+            if (serverNote && serverNote.id) {
+                newNote.id = serverNote.id;
+                saveTopicNotes(slug, notes);
+            }
+        } catch (e) {
+            console.warn("Note creation DB sync failed:", e);
+        }
+    }
+}
+
+function startEditTopicNote(noteId) {
+    const disp = document.getElementById(`noteDisplay_${noteId}`);
+    const edit = document.getElementById(`noteEditArea_${noteId}`);
+    if (disp) disp.style.display = 'none';
+    if (edit) edit.style.display = 'block';
+}
+
+function cancelEditTopicNote(noteId) {
+    const disp = document.getElementById(`noteDisplay_${noteId}`);
+    const edit = document.getElementById(`noteEditArea_${noteId}`);
+    if (disp) disp.style.display = 'block';
+    if (edit) edit.style.display = 'none';
+}
+
+function saveEditedTopicNote(noteId) {
+    if (!currentTopicData) return;
+    const slug = currentTopicData.slug;
+    const editInput = document.getElementById(`noteEditText_${noteId}`);
+    if (!editInput) return;
+
+    const newText = editInput.value.trim();
+    if (!newText) {
+        alert("Note text cannot be empty!");
+        return;
+    }
+
+    const notes = getTopicNotes(slug);
+    const target = notes.find(n => n.id === noteId);
+    if (target) {
+        target.text = newText;
+        target.updatedAt = new Date().toISOString();
+        saveTopicNotes(slug, notes);
+        renderTopicNotes(slug);
+    }
+}
+
+function deleteTopicNote(noteId) {
+    if (!currentTopicData) return;
+    const slug = currentTopicData.slug;
+
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'Delete Personal Note?',
+            text: 'This action cannot be undone. Are you sure you want to delete this note?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#475569',
+            confirmButtonText: 'Yes, Delete Note',
+            cancelButtonText: 'Cancel',
+            background: '#0f172a',
+            color: '#f8fafc'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                let notes = getTopicNotes(slug);
+                notes = notes.filter(n => n.id !== noteId);
+                saveTopicNotes(slug, notes);
+                renderTopicNotes(slug);
+
+                if (!noteId.startsWith('note_')) {
+                    try {
+                        apiFetch(`/progress/notes/${noteId}`, { method: 'DELETE' });
+                    } catch (e) {
+                        console.warn("Note deletion DB sync failed:", e);
+                    }
+                }
+
+                Swal.fire({
+                    title: 'Deleted!',
+                    text: 'Your personal note has been removed.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    background: '#0f172a',
+                    color: '#f8fafc'
+                });
+            }
+        });
+    } else {
+        if (!confirm("Are you sure you want to delete this personal note?")) return;
+        let notes = getTopicNotes(slug);
+        notes = notes.filter(n => n.id !== noteId);
+        saveTopicNotes(slug, notes);
+        renderTopicNotes(slug);
+    }
+}
+
+window.scrollToNotesSection = scrollToNotesSection;
+window.addTopicNote = addTopicNote;
+window.startEditTopicNote = startEditTopicNote;
+window.cancelEditTopicNote = cancelEditTopicNote;
+window.saveEditedTopicNote = saveEditedTopicNote;
+window.deleteTopicNote = deleteTopicNote;

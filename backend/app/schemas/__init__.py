@@ -72,40 +72,7 @@ class ContentBlockResponse(ContentBlockCreate):
     id: str
     created_at: str
 
-# --- Practice Schemas ---
-class QuestionStatusUpdate(BaseModel):
-    question_id: str
-    status: str # 'not_started', 'attempted', 'solved', 'revision'
-    notes: Optional[str] = None
-
-class PracticeQuestionResponse(BaseModel):
-    id: str
-    topic_id: Optional[str] = None
-    category_slug: str
-    title: str
-    difficulty: str
-    description: Optional[str] = None
-    platform: str
-    external_url: Optional[str] = None
-    hints: Optional[List[str]] = []
-    solution_reference: Optional[str] = None
-    user_status: Optional[str] = "not_started"
-
-# --- Assessment Schemas ---
-class AssessmentSubmit(BaseModel):
-    assessment_id: str
-    answers: Dict[str, Any] # question_id -> user_answer
-
-class AssessmentResultResponse(BaseModel):
-    attempt_id: str
-    score: int
-    total_questions: int
-    percentage: float
-    passed: bool
-    weak_topics: List[str]
-    completed_at: str
-
-# --- AI & Mock Interview Schemas ---
+# --- AI Schemas ---
 class AIQuestionRequest(BaseModel):
     topic_id: Optional[str] = None
     category_name: Optional[str] = None
@@ -113,17 +80,7 @@ class AIQuestionRequest(BaseModel):
     message: str
     action_type: Optional[str] = "chat" # 'explain_simple', 'example', 'logic', 'dry_run', 'interview', 'quiz_me', 'chat'
 
-class BehavioralAnswerRequest(BaseModel):
-    question_title: str
-    answer: str
-
 class AIGenerateContentRequest(BaseModel):
     topic_name: str
     category_name: str
     difficulty: Optional[str] = "Beginner to Interview Level"
-
-class MockInterviewMessage(BaseModel):
-    interview_type: str # 'dsa', 'cs-fundamentals', 'system-design', 'behavioral'
-    difficulty: str # 'Beginner', 'Intermediate', 'Advanced'
-    history: List[Dict[str, str]] = []
-    user_message: str

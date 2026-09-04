@@ -77,11 +77,79 @@ def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
 def init_db():
-    """Initialize local SQLite database with full schema and seed content."""
+    """Initialize database tables - handles Supabase PostgreSQL and local fallback."""
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 1. Users table
+    if isinstance(conn, PgConnectionWrapper):
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS public.users (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            name TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user',
+            avatar_url TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        CREATE TABLE IF NOT EXISTS public.profiles (
+            id UUID PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT,
+            full_name TEXT,
+            avatar_url TEXT,
+            target_role TEXT DEFAULT 'Software Engineer',
+            target_company TEXT DEFAULT 'FAANG',
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        CREATE TABLE IF NOT EXISTS public.user_topic_progress (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL,
+            topic_id TEXT NOT NULL,
+            status TEXT CHECK (status IN ('not_started', 'in_progress', 'completed')) DEFAULT 'completed',
+            completed_at TIMESTAMPTZ DEFAULT NOW(),
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW(),
+            CONSTRAINT unique_user_topic UNIQUE (user_id, topic_id)
+        );
+        CREATE TABLE IF NOT EXISTS public.user_bookmarks (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL,
+            topic_id TEXT NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            CONSTRAINT unique_user_bookmark UNIQUE (user_id, topic_id)
+        );
+        CREATE TABLE IF NOT EXISTS public.user_solved_questions (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL,
+            question_title TEXT NOT NULL,
+            topic_id TEXT,
+            solved_at TIMESTAMPTZ DEFAULT NOW(),
+            CONSTRAINT unique_user_solved_q UNIQUE (user_id, question_title)
+        );
+        CREATE TABLE IF NOT EXISTS public.user_topic_notes (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL,
+            topic_id TEXT NOT NULL,
+            note_text TEXT NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        CREATE TABLE IF NOT EXISTS public.ai_conversations (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL,
+            topic_id TEXT,
+            user_message TEXT NOT NULL,
+            ai_response TEXT NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        ''')
+        conn.commit()
+        conn.close()
+        return
+
+    # 1. Users table (SQLite fallback)
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
