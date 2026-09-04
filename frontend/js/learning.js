@@ -1036,6 +1036,8 @@ async function deleteTopicNote(noteId) {
         if (!confirm("Are you sure you want to delete this personal note?")) return;
         await doDelete();
     }
+}
+
 window.scrollToNotesSection = scrollToNotesSection;
 window.addTopicNote = addTopicNote;
 window.startEditTopicNote = startEditTopicNote;
