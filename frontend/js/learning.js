@@ -641,7 +641,14 @@ window.switchEditorLang = switchEditorLang;
 async function toggleSolveQuestion(qTitle) {
     const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
     if (!user || !user.id) {
-        alert('Please log in to track your solved questions.');
+        Swal.fire({
+            title: 'Login Required',
+            text: 'Please log in to track your solved questions.',
+            icon: 'warning',
+            confirmButtonColor: '#6366f1',
+            background: '#0f172a',
+            color: '#f8fafc'
+        });
         return;
     }
 
@@ -820,7 +827,18 @@ async function addTopicNote() {
 
     const text = input.value.trim();
     if (!text) {
-        alert("Please write some note text before adding!");
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'warning',
+            title: 'Note cannot be empty!',
+            text: 'Please write something before adding a note.',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            background: '#1e293b',
+            color: '#f8fafc'
+        });
         return;
     }
 
@@ -882,7 +900,18 @@ async function saveEditedTopicNote(noteId) {
 
     const newText = editInput.value.trim();
     if (!newText) {
-        alert("Note text cannot be empty!");
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'warning',
+            title: 'Note cannot be empty!',
+            text: 'Please write some content before saving.',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            background: '#1e293b',
+            color: '#f8fafc'
+        });
         return;
     }
 

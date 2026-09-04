@@ -32,17 +32,20 @@ async function submitAdminCategory() {
     const slug = document.getElementById('adminCatSlug')?.value.trim();
     const desc = document.getElementById('adminCatDesc')?.value.trim();
     
-    if (!name || !slug) return alert("Category Name and Slug are required.");
+    if (!name || !slug) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Category Name and Slug are required.', showConfirmButton: false, timer: 3000, timerProgressBar: true, background: '#1e293b', color: '#f8fafc' });
+        return;
+    }
     
     try {
         await apiFetch('/admin/categories', {
             method: 'POST',
             body: JSON.stringify({ name, slug, description: desc, icon: 'book', display_order: 1 })
         });
-        alert("Category Created Successfully!");
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Category Created Successfully!', showConfirmButton: false, timer: 2500, background: '#1e293b', color: '#f8fafc' });
         window.location.reload();
     } catch (err) {
-        alert("Failed to create category: " + err.message);
+        Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Failed to create category', text: err.message, showConfirmButton: false, timer: 4000, background: '#1e293b', color: '#f8fafc' });
     }
 }
 
@@ -52,16 +55,19 @@ async function submitAdminTopic() {
     const slug = document.getElementById('adminTopicSlug')?.value.trim();
     const diff = document.getElementById('adminTopicDiff')?.value;
     
-    if (!title || !slug) return alert("Title and Slug required.");
+    if (!title || !slug) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Title and Slug are required.', showConfirmButton: false, timer: 3000, timerProgressBar: true, background: '#1e293b', color: '#f8fafc' });
+        return;
+    }
     
     try {
         await apiFetch('/admin/topics', {
             method: 'POST',
             body: JSON.stringify({ subject_id: subjectId, title, slug, difficulty: diff, display_order: 1 })
         });
-        alert("Topic Created Successfully!");
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Topic Created Successfully!', showConfirmButton: false, timer: 2500, background: '#1e293b', color: '#f8fafc' });
     } catch (err) {
-        alert("Failed to create topic: " + err.message);
+        Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Failed to create topic', text: err.message, showConfirmButton: false, timer: 4000, background: '#1e293b', color: '#f8fafc' });
     }
 }
 
@@ -69,7 +75,10 @@ async function adminAIGenerateBlocks() {
     const topicName = document.getElementById('aiGenTopicName')?.value.trim();
     const categoryName = document.getElementById('aiGenCategoryName')?.value.trim() || 'Data Structures & Algorithms';
     
-    if (!topicName) return alert("Please enter a Topic Name for AI generation.");
+    if (!topicName) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Topic Name required!', text: 'Please enter a Topic Name for AI generation.', showConfirmButton: false, timer: 3000, timerProgressBar: true, background: '#1e293b', color: '#f8fafc' });
+        return;
+    }
     
     const previewContainer = document.getElementById('aiGenPreviewContainer');
     previewContainer.innerHTML = `<em>Generating structured block content using AI...</em>`;

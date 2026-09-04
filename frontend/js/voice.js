@@ -71,7 +71,18 @@ class VoiceController {
 
     speak(text, topicTitle = "", startFromOffset = false) {
         if (!this.synth) {
-            alert("Text-to-Speech is not supported in this browser.");
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'error',
+                title: 'Not Supported',
+                text: 'Text-to-Speech is not supported in this browser.',
+                showConfirmButton: false,
+                timer: 3500,
+                timerProgressBar: true,
+                background: '#1e293b',
+                color: '#f8fafc'
+            });
             return;
         }
 
