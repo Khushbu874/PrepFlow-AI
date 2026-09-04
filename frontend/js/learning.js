@@ -800,8 +800,12 @@ function renderTopicNotes(topicSlug) {
             <div class="note-header">
                 <span class="note-timestamp">📅 ${new Date(n.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>
                 <div class="note-actions-btn-group">
-                    <button onclick="startEditTopicNote('${n.id}')" class="btn btn-sm btn-outline btn-icon-note" title="Edit Note">✏️ Edit</button>
-                    <button onclick="deleteTopicNote('${n.id}')" class="btn btn-sm btn-outline btn-icon-note-danger" title="Delete Note">🗑️ Delete</button>
+                    <button onclick="startEditTopicNote('${n.id}')" class="btn btn-sm btn-outline btn-icon-note" title="Edit Note">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button onclick="deleteTopicNote('${n.id}')" class="btn btn-sm btn-outline btn-icon-note-danger" title="Delete Note">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    </button>
                 </div>
             </div>
 
@@ -813,7 +817,7 @@ function renderTopicNotes(topicSlug) {
                 <textarea id="noteEditText_${n.id}" class="note-textarea" rows="3">${n.text}</textarea>
                 <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.5rem;">
                     <button onclick="cancelEditTopicNote('${n.id}')" class="btn btn-sm btn-secondary">Cancel</button>
-                    <button onclick="saveEditedTopicNote('${n.id}')" class="btn btn-sm btn-primary">Save Changes</button>
+                    <button onclick="saveEditedTopicNote('${n.id}')" class="btn btn-sm btn-primary">Update</button>
                 </div>
             </div>
         </div>
@@ -869,8 +873,10 @@ async function addTopicNote() {
                 })
             });
             if (serverNote && serverNote.id) {
+                // Update the note's ID to server UUID and re-render so DOM IDs are correct
                 newNote.id = serverNote.id;
                 saveTopicNotes(slug, notes);
+                renderTopicNotes(slug); // Re-render with correct server IDs
             }
         } catch (e) {
             console.warn("Note creation DB sync failed:", e);
