@@ -20,19 +20,35 @@ document.addEventListener('DOMContentLoaded', () => {
     renderStaticTree(topicSlug);
     loadTopicBySlug(topicSlug);
 
-    // 2. Fetch user topic progress and DB state in background without blocking page render
-    (async () => {
+    // 2. Full DB sync on page load
+    syncAllDataFromDB(topicSlug);
+});
+
+// Auto sync with Supabase DB whenever user switches back to this tab or window gets focus
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        const slug = currentTopicData ? currentTopicData.slug : 'time-complexity';
+        syncAllDataFromDB(slug);
+    }
+});
+
+async function syncAllDataFromDB(targetSlug) {
+    const slug = targetSlug || (currentTopicData ? currentTopicData.slug : 'time-complexity');
+    try {
         await initUserTopicState();
         await loadSolvedQuestionsFromDB();
         
-        // Re-render sidebar & header button states once DB progress arrives
-        renderStaticTree(topicSlug);
+        // Re-render sidebar, headers, practice problems & notes with latest DB data
+        renderStaticTree(slug);
         updateHeaderButtonStates();
         if (currentTopicData && currentTopicData.practice_questions) {
             renderPracticeQuestions(currentTopicData.practice_questions);
         }
-    })();
-});
+        await renderTopicNotes(slug);
+    } catch (e) {
+        console.warn("Auto DB sync on load/focus error:", e);
+    }
+}
 
 /* -------------------------------------------------------------
  * 1. USER TOPIC STATE INITIALIZATION & SYNC

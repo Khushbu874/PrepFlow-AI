@@ -22,6 +22,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Auto sync dashboard from Supabase DB whenever user returns to this tab
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+        if (user && user.id) {
+            loadDashboardData(user.id);
+        }
+    }
+});
+
 async function loadDashboardData(userId) {
     try {
         // 1. Fetch user topic statuses and bookmarks
