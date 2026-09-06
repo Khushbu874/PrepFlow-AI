@@ -4,8 +4,8 @@ from app.config import settings
 
 class AIService:
     @staticmethod
-    async def answer_topic_doubt(topic_title: str, category_name: str, message: str, action_type: str = "chat", section_content: str = "") -> str:
-        """Provide context-aware AI tutor explanations with quick action prompt triggers."""
+    async def answer_topic_doubt(topic_title: str, category_name: str, message: str, action_type: str = "chat", section_content: str = "", user_api_key: str = "") -> str:
+        """Provide context-aware AI tutor explanations with quick action prompt triggers and user BYOK API key."""
         # Custom prompt builder based on quick action buttons
         if action_type == "explain_simple":
             prompt = f"Explain the topic '{topic_title}' in simple, beginner-friendly terms with a clear real-world analogy."
@@ -22,52 +22,85 @@ class AIService:
         else:
             prompt = message
 
-        system_context = f"You are PrepFlow AI, an expert interview coach and tutor specializing in {category_name or 'Computer Science'}."
+        system_context = f"You are PrepFlow AI, an expert interview coach and tutor specializing in {category_name or 'Computer Science'}. Provide structured, clear, and high-quality explanations."
         
-        # Call Groq, Gemini, or OpenAI if API key present, else generate intelligent response
-        if settings.GROQ_API_KEY:
-            try:
-                url = "https://api.groq.com/openai/v1/chat/completions"
-                headers = {
-                    "Authorization": f"Bearer {settings.GROQ_API_KEY}",
-                    "Content-Type": "application/json"
-                }
-                payload = {
-                    "model": settings.GROQ_MODEL,
-                    "messages": [
-                        {"role": "system", "content": system_context},
-                        {"role": "user", "content": f"Context Topic: {topic_title}\nContext Section: {section_content[:500]}\n\nUser Question: {prompt}"}
-                    ],
-                    "temperature": 0.7
-                }
-                async with httpx.AsyncClient(timeout=15.0) as client:
-                    resp = await client.post(url, headers=headers, json=payload)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        return data["choices"][0]["message"]["content"]
-                    else:
-                        print(f"[AI Service Error] Groq API error {resp.status_code}: {resp.text}")
-            except Exception as e:
-                print(f"[AI Service Error] Groq call failed: {e}")
+        # Strictly user-provided Groq API key only (NO default server key used)
+        active_groq_key = user_api_key.strip() if user_api_key else ""
 
-        if settings.GEMINI_API_KEY:
-            try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={settings.GEMINI_API_KEY}"
-                payload = {
-                    "contents": [{
-                        "parts": [{"text": f"{system_context}\n\nContext Topic: {topic_title}\nContext Section: {section_content[:500]}\n\nUser Question: {prompt}"}]
-                    }]
-                }
-                async with httpx.AsyncClient(timeout=10.0) as client:
-                    resp = await client.post(url, json=payload)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        return data["candidates"][0]["content"]["parts"][0]["text"]
-            except Exception as e:
-                print(f"[AI Service Error] Gemini call failed: {e}")
+        # 1. If user provided a Groq key, call Groq OpenAI-compatible API
+        if active_groq_key:
+            # Dynamically discover currently active models for this specific Groq key
+            candidate_models = await AIService.get_active_groq_models(active_groq_key)
 
-        # Intelligent rule-based fallback response
-        return AIService._get_fallback_response(topic_title, action_type, prompt)
+            url = "https://api.groq.com/openai/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {active_groq_key}",
+                "Content-Type": "application/json"
+            }
+
+            for model_name in candidate_models:
+                try:
+                    payload = {
+                        "model": model_name,
+                        "messages": [
+                            {"role": "system", "content": system_context},
+                            {"role": "user", "content": f"Context Topic: {topic_title}\nContext Section: {section_content[:500]}\n\nUser Question: {prompt}"}
+                        ],
+                        "temperature": 0.7,
+                        "max_tokens": 1024
+                    }
+                    async with httpx.AsyncClient(timeout=18.0) as client:
+                        resp = await client.post(url, headers=headers, json=payload)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            choices = data.get("choices", [])
+                            if choices and "message" in choices[0]:
+                                return choices[0]["message"].get("content", "")
+                            return "Sorry, no response was generated. Please try asking again."
+                        elif resp.status_code == 401:
+                            return "⚠️ **Groq API Key Invalid:** The provided Groq API key is invalid or unauthorized. Please verify your key from [Groq Console](https://console.groq.com/keys)."
+                        elif resp.status_code == 429:
+                            return "⚠️ **Groq Rate Limit Exceeded:** Your Groq free tier limit was reached. Please wait a few seconds and try again."
+                        
+                        # Inspect error response
+                        err_json = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+                        err_msg = err_json.get("error", {}).get("message", "")
+                        err_lower = err_msg.lower()
+
+                        # If model is deprecated, decommissioned, unavailable, or restricted, auto-failover to next candidate
+                        is_model_issue = (
+                            resp.status_code == 404 or 
+                            any(k in err_lower for k in [
+                                "does not exist", "do not have access", "decommissioned", 
+                                "deprecated", "not found", "no longer supported", "invalid model"
+                            ])
+                        )
+                        if is_model_issue:
+                            print(f"[Groq Model Fallback] {model_name} issue: {err_msg}. Trying next candidate...")
+                            continue
+                        else:
+                            return f"⚠️ **Groq Error:** {err_msg or f'Status {resp.status_code}'}\n\nPlease verify your API key in Groq Key settings."
+                except httpx.TimeoutException:
+                    continue
+                except Exception as e:
+                    print(f"[AI Service Error] Groq call failed for {model_name}: {e}")
+                    continue
+
+            # If all Groq candidate models failed or key is rejected:
+            return (
+                "⚠️ **Groq API Key Invalid / Inactive:** "
+                "Provided Groq API key authenticate nahi ho pa rahi hai. "
+                "Kripya **Groq Key** settings me jaakar active key enter aur verify karein."
+            )
+
+        # 2. If no user key provided at all:
+        return (
+            "**Groq API Key Required**\n\n"
+            "AI chat use karne ke liye aapko apna free Groq API key verify aur save karna hoga:\n\n"
+            "1. Panel ke upar **Add Groq Key** button par click karein.\n"
+            "2. [Groq Console](https://console.groq.com/keys) se free key copy karein (starts with `gsk_`).\n"
+            "3. Key paste karke **Verify & Save** karein."
+        )
 
     @staticmethod
     def _get_fallback_response(topic_title: str, action_type: str, prompt: str) -> str:
@@ -122,3 +155,115 @@ class AIService:
             }
         ]
         return blocks
+
+    @staticmethod
+    async def get_active_groq_models(api_key: str) -> list:
+        """Fetch the exact list of active chat models supported by the user's specific Groq key."""
+        try:
+            url = "https://api.groq.com/openai/v1/models"
+            headers = {"Authorization": f"Bearer {api_key}"}
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(url, headers=headers)
+                if resp.status_code == 200:
+                    raw_models = resp.json().get("data", [])
+                    available_ids = [m.get("id") for m in raw_models if m.get("id") and m.get("active", True)]
+                    
+                    # Preferred priority list of high-performance chat models
+                    preferred = [
+                        "llama-3.1-8b-instant",
+                        "llama-3.3-70b-versatile",
+                        "llama-3.2-3b-preview",
+                        "llama-3.2-1b-preview",
+                        "deepseek-r1-distill-llama-70b",
+                        "qwen-2.5-32b",
+                        "gemma2-9b-it",
+                        "mixtral-8x7b-32768"
+                    ]
+                    
+                    ordered = [m for m in preferred if m in available_ids]
+                    # Append any other text models from user account (excluding whisper/guard/embed)
+                    for m in available_ids:
+                        m_lower = m.lower()
+                        if m not in ordered and not any(x in m_lower for x in ["whisper", "guard", "embed", "tts", "moderation"]):
+                            ordered.append(m)
+                    
+                    if ordered:
+                        return ordered
+        except Exception as e:
+            print(f"[Groq Model Discovery] Failed to fetch live models: {e}")
+        
+        # Hardcoded safe fallbacks (excluding decommissioned llama3-8b-8192/70b)
+        return [
+            "llama-3.1-8b-instant",
+            "llama-3.3-70b-versatile",
+            "llama-3.2-3b-preview",
+            "llama-3.2-1b-preview",
+            "gemma2-9b-it"
+        ]
+
+    @staticmethod
+    async def verify_groq_key(api_key: str) -> dict:
+        """Verify if a Groq API key is valid, authentic, and currently active in real-time."""
+        key = (api_key or "").strip()
+        if not key:
+            return {"valid": False, "status": "missing", "error": "API Key cannot be empty."}
+        
+        if not key.startswith("gsk_"):
+            return {
+                "valid": False, 
+                "status": "invalid_format", 
+                "error": "Invalid format: Groq API key must start with 'gsk_' (copy it from console.groq.com/keys)."
+            }
+
+        try:
+            url = "https://api.groq.com/openai/v1/models"
+            headers = {
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json"
+            }
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                resp = await client.get(url, headers=headers)
+                if resp.status_code == 200:
+                    return {
+                        "valid": True,
+                        "status": "active",
+                        "message": "Groq API Key verified & active! (Connected to Llama 3.3)"
+                    }
+                elif resp.status_code == 401:
+                    return {
+                        "valid": False,
+                        "status": "unauthorized",
+                        "error": "Key is invalid or inactive (401 Unauthorized). Groq ne is key ko reject kar diya. Kripya Groq Console se new active key banayein."
+                    }
+                elif resp.status_code == 403:
+                    return {
+                        "valid": False,
+                        "status": "forbidden",
+                        "error": "Groq access forbidden (403). Is key ke permissions restricted hain."
+                    }
+                elif resp.status_code == 429:
+                    return {
+                        "valid": False,
+                        "status": "rate_limited",
+                        "error": "Groq rate limit reach ho chuka hai (429). Kripya thoda wait karein ya new key banayein."
+                    }
+                else:
+                    err_data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+                    err_msg = err_data.get("error", {}).get("message", f"HTTP {resp.status_code}")
+                    return {
+                        "valid": False,
+                        "status": "rejected",
+                        "error": f"Groq verification failed ({resp.status_code}): {err_msg}"
+                    }
+        except httpx.TimeoutException:
+            return {
+                "valid": False,
+                "status": "timeout",
+                "error": "Groq server connection timeout ho gaya. Kripya internet check karein aur dobara try karein."
+            }
+        except Exception as e:
+            return {
+                "valid": False,
+                "status": "error",
+                "error": f"Verification error: {str(e)}"
+            }

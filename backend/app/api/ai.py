@@ -17,6 +17,7 @@ class AIAskRequest(BaseModel):
     message: str
     action_type: Optional[str] = "chat"
     section_content: Optional[str] = ""
+    user_api_key: Optional[str] = None
 
 class AdminAIGenerateRequest(BaseModel):
     topic_name: str
@@ -30,7 +31,8 @@ async def ask_ai_tutor(req: AIAskRequest):
         category_name=req.category_name or "Computer Science",
         message=req.message,
         action_type=req.action_type,
-        section_content=req.section_content or ""
+        section_content=req.section_content or "",
+        user_api_key=req.user_api_key or ""
     )
     
     # Save conversation log
@@ -58,3 +60,11 @@ async def admin_generate_content(req: AdminAIGenerateRequest):
         difficulty=req.difficulty or "Medium"
     )
     return {"status": "success", "topic_name": req.topic_name, "blocks": blocks}
+
+class KeyVerifyRequest(BaseModel):
+    api_key: str
+
+@router.post("/verify-key")
+async def verify_user_key(req: KeyVerifyRequest):
+    result = await AIService.verify_groq_key(req.api_key)
+    return result

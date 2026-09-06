@@ -6,7 +6,7 @@
     <title>Learning Hub - PrepFlow AI</title>
     <link rel="stylesheet" href="/static/css/main.css?v=2.4">
     <link rel="stylesheet" href="/static/css/learning.css?v=4.6">
-    <link rel="stylesheet" href="/static/css/ai-chat.css">
+    <link rel="stylesheet" href="/static/css/ai-chat.css?v=3.1">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <script>mermaid.initialize({ startOnLoad: true, theme: 'dark' });</script>
@@ -108,30 +108,73 @@
         <aside class="sidebar-right-ai collapsed" id="aiChatPanel">
             <div class="ai-header">
                 <div class="ai-title">
-                    <span>🤖</span>
-                    <span>AI Tutor Assistant</span>
+                    <span>AI</span>
                 </div>
-                <button onclick="toggleAIChat(false)" class="btn btn-sm btn-secondary" title="Close AI Panel">✕</button>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <button onclick="toggleAPIKeySettings()" id="aiKeyStatusBtn" class="ai-key-badge-btn missing" title="Configure your Groq API Key">
+                        <span id="aiKeyStatusDot" class="ai-status-dot"></span>
+                        <span id="aiKeyStatusText">Add Groq Key</span>
+                    </button>
+                    <button onclick="toggleAIChat(false)" class="btn btn-sm btn-secondary" title="Close AI Panel">✕</button>
+                </div>
             </div>
 
-            <div style="padding:0.6rem 1.25rem; background:rgba(0,0,0,0.15); border-bottom:1px solid var(--border-color); font-size:0.8rem; color:var(--text-muted);" id="aiTopicContextLabel">
-                Context: Binary Search & Search Space
+            <!-- API KEY SETTINGS DRAWER -->
+            <div id="aiApiKeyDrawer" class="ai-api-key-drawer" style="display:none;">
+                <div class="ai-key-drawer-header">
+                    <span style="font-weight:700; font-size:0.85rem; color:var(--text-primary);">Groq API Key</span>
+                    <button onclick="toggleAPIKeySettings(false)" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem;">✕</button>
+                </div>
+                <p style="font-size:0.75rem; color:var(--text-secondary); margin:0.35rem 0 0.65rem 0; line-height:1.4;">
+                    Key is verified live with Groq servers before saving. Stored securely only in your browser.
+                </p>
+                <div style="display:flex; gap:0.4rem; margin-bottom:0.5rem;">
+                    <div style="position:relative; flex:1; display:flex; align-items:center;">
+                        <input type="password" 
+                               id="userGroqKeyInput" 
+                               class="ai-key-input" 
+                               placeholder="Paste gsk_... key" 
+                               autocomplete="off" 
+                               spellcheck="false"
+                               style="padding-right:2rem; width:100%;"
+                               oninput="handleGroqKeyInput()"
+                               onkeydown="if(event.key==='Enter') saveUserGroqKey()">
+                        <button type="button" onclick="toggleKeyVisibility()" id="toggleKeyVisBtn" title="Show/Hide Key" style="position:absolute; right:6px; background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px 6px; display:inline-flex; align-items:center;">
+                            <svg id="eyeSvgIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                    <button id="saveGroqKeyBtn" onclick="saveUserGroqKey()" class="btn btn-sm btn-primary" style="font-size:0.78rem; padding:0.35rem 0.75rem; white-space:nowrap; display:inline-flex; align-items:center; gap:0.35rem;">
+                        <svg id="saveGroqKeySpinner" class="ai-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:none;">
+                            <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+                            <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
+                        </svg>
+                        <span id="saveGroqKeyText">Verify & Save</span>
+                    </button>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.4rem; font-size:0.72rem;">
+                    <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" style="color:var(--accent-blue); text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:0.25rem;">
+                        <span>Get Free Key (Groq Console)</span>
+                        <span>↗</span>
+                    </a>
+                    <div style="display:flex; gap:0.6rem; align-items:center;">
+                        <button onclick="testActiveKeyStatus()" id="testActiveKeyBtn" style="background:none; border:none; color:var(--accent-blue); cursor:pointer; font-size:0.72rem; display:none; padding:0; text-decoration:underline;">
+                            Re-verify
+                        </button>
+                        <button onclick="removeUserGroqKey()" id="removeKeyBtn" style="background:none; border:none; color:var(--accent-rose); cursor:pointer; font-size:0.72rem; display:none; padding:0; text-decoration:underline;">
+                            Remove Key
+                        </button>
+                    </div>
+                </div>
+                <div id="aiKeyNoticeMsg" style="margin-top:0.5rem; font-size:0.75rem; border-radius:6px; padding:0.4rem 0.6rem; display:none; line-height:1.4;"></div>
             </div>
 
             <div class="ai-chat-body" id="aiChatBody">
                 <div class="chat-bubble chat-bubble-ai">
-                    Hello! I'm your PrepFlow AI tutor. Ask me any doubt about this topic, or click a quick action prompt below!
+                    Hello! I'm your PrepFlow AI tutor. Ask me any doubt or question about this topic!
                 </div>
-            </div>
-
-            <!-- QUICK ACTION PROMPT PILLS -->
-            <div class="quick-actions-container">
-                <button onclick="sendAIMessage('explain_simple')" class="action-pill">💡 Explain Simply</button>
-                <button onclick="sendAIMessage('example')" class="action-pill">📝 Give Example</button>
-                <button onclick="sendAIMessage('logic')" class="action-pill">⚙️ Explain Logic</button>
-                <button onclick="sendAIMessage('dry_run')" class="action-pill">📊 Dry Run</button>
-                <button onclick="sendAIMessage('interview')" class="action-pill">🎯 Interview Insights</button>
-                <button onclick="sendAIMessage('quiz_me')" class="action-pill">❓ Quiz Me</button>
             </div>
 
             <div class="ai-input-area">
@@ -148,7 +191,7 @@
     <script src="/static/js/navbar.js?v=3.1"></script>
     <script src="/static/js/render-engine.js?v=3.0"></script>
     <script src="/static/js/voice.js?v=3.0"></script>
-    <script src="/static/js/ai-chat.js?v=3.0"></script>
+    <script src="/static/js/ai-chat.js?v=3.1"></script>
     <script src="/static/js/topics-data.js?v=11.0"></script>
     <script src="/static/js/sweetalert2.all.min.js?v=3.0"></script>
     <script>
