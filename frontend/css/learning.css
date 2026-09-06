@@ -189,6 +189,15 @@
     color: var(--text-muted);
 }
 
+.category-group.open .category-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #0f172a;
+    border-bottom: 1px solid rgba(59, 130, 246, 0.25);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
 .category-group.open .category-arrow {
     transform: rotate(90deg);
 }
