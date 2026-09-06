@@ -754,13 +754,17 @@ async function toggleSolveQuestion(qTitle) {
 }
 
 function renderPracticeQuestions(questions) {
+    const section = document.querySelector('.topic-practice-section');
     const practiceContainer = document.getElementById('topicPracticeList');
     if (!practiceContainer) return;
 
     if (!questions || questions.length === 0) {
-        practiceContainer.innerHTML = `<p style="color:var(--text-muted); font-size:0.9rem;">No LeetCode questions linked to this topic yet.</p>`;
+        if (section) section.style.display = 'none';
+        practiceContainer.innerHTML = '';
         return;
     }
+
+    if (section) section.style.display = 'block';
 
     // Use in-memory Set loaded from Supabase DB — no localStorage
     const totalCount = questions.length;

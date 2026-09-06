@@ -72,40 +72,42 @@ async function loadDashboardData(userId) {
         let resumeTopicCandidate = null;
         const moduleAnalytics = [];
 
-        if (window.PREPFLOW_TOPICS_DATA && window.PREPFLOW_TOPICS_DATA[0]) {
-            const subcategories = window.PREPFLOW_TOPICS_DATA[0].subcategories || [];
+        if (window.PREPFLOW_TOPICS_DATA && Array.isArray(window.PREPFLOW_TOPICS_DATA)) {
+            window.PREPFLOW_TOPICS_DATA.forEach(cat => {
+                const subcategories = cat.subcategories || [];
 
-            subcategories.forEach((sub, subIdx) => {
-                const subTopics = sub.topics || [];
-                const subTotal = subTopics.length;
-                let subCompleted = 0;
+                subcategories.forEach((sub, subIdx) => {
+                    const subTopics = sub.topics || [];
+                    const subTotal = subTopics.length;
+                    let subCompleted = 0;
 
-                subTopics.forEach(t => {
-                    totalTopicsCount++;
-                    if (completedTopicIds.has(t.id) || completedTopicIds.has(t.slug)) {
-                        subCompleted++;
-                        completedTopicsCount++;
-                    } else if (!resumeTopicCandidate) {
-                        // First incomplete topic is our recommended resume point
-                        resumeTopicCandidate = {
-                            topic_title: t.title,
-                            topic_slug: t.slug,
-                            subject_name: sub.name,
-                            difficulty: t.difficulty
-                        };
-                    }
-                });
+                    subTopics.forEach(t => {
+                        totalTopicsCount++;
+                        if (completedTopicIds.has(t.id) || completedTopicIds.has(t.slug)) {
+                            subCompleted++;
+                            completedTopicsCount++;
+                        } else if (!resumeTopicCandidate) {
+                            // First incomplete topic is our recommended resume point
+                            resumeTopicCandidate = {
+                                topic_title: t.title,
+                                topic_slug: t.slug,
+                                subject_name: sub.name,
+                                difficulty: t.difficulty
+                            };
+                        }
+                    });
 
-                const subPct = subTotal > 0 ? Math.round((subCompleted / subTotal) * 100) : 0;
+                    const subPct = subTotal > 0 ? Math.round((subCompleted / subTotal) * 100) : 0;
 
-                moduleAnalytics.push({
-                    id: sub.id,
-                    name: sub.name,
-                    icon: sub.icon || '📁',
-                    firstTopicSlug: subTopics[0] ? subTopics[0].slug : 'binary-search',
-                    total: subTotal,
-                    completed: subCompleted,
-                    percentage: subPct
+                    moduleAnalytics.push({
+                        id: sub.id,
+                        name: sub.name,
+                        icon: sub.icon || '📁',
+                        firstTopicSlug: subTopics[0] ? subTopics[0].slug : 'binary-search',
+                        total: subTotal,
+                        completed: subCompleted,
+                        percentage: subPct
+                    });
                 });
             });
         }
