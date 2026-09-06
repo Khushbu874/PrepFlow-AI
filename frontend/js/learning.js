@@ -77,41 +77,84 @@ async function loadSolvedQuestionsFromDB() {
 
 /* -------------------------------------------------------------
  * 2. RENDER HIERARCHICAL SIDEBAR TREE (Category -> Subcategory -> Topic)
+/* -------------------------------------------------------------
+ * 2. ROBUST TOPIC RESOLVER & SIDEBAR TREE RENDERER
  * ------------------------------------------------------------- */
 const openSubcategories = new Set();
+
+function findTopicBySlugOrId(slug) {
+    if (!window.PREPFLOW_TOPICS_DATA || !slug) return null;
+    const clean = slug.trim().toLowerCase();
+
+    // 1. Exact match by slug or id
+    for (const cat of window.PREPFLOW_TOPICS_DATA) {
+        for (const sub of cat.subcategories) {
+            for (const top of sub.topics) {
+                if (top.slug.toLowerCase() === clean || top.id.toLowerCase() === clean) {
+                    return { topic: top, category: cat, subcategory: sub };
+                }
+            }
+        }
+    }
+
+    // 2. Starts with / prefix match
+    for (const cat of window.PREPFLOW_TOPICS_DATA) {
+        for (const sub of cat.subcategories) {
+            for (const top of sub.topics) {
+                if (top.slug.toLowerCase().startsWith(clean) || clean.startsWith(top.slug.toLowerCase())) {
+                    return { topic: top, category: cat, subcategory: sub };
+                }
+            }
+        }
+    }
+
+    // 3. Includes / partial match
+    for (const cat of window.PREPFLOW_TOPICS_DATA) {
+        for (const sub of cat.subcategories) {
+            for (const top of sub.topics) {
+                if (top.slug.toLowerCase().includes(clean) || top.id.toLowerCase().includes(clean) || clean.includes(top.slug.toLowerCase())) {
+                    return { topic: top, category: cat, subcategory: sub };
+                }
+            }
+        }
+    }
+
+    return null;
+}
 
 function renderStaticTree(activeTopicSlug) {
     const container = document.getElementById('sidebarAccordion');
     if (!container || !window.PREPFLOW_TOPICS_DATA) return;
     
+    const resolved = findTopicBySlugOrId(activeTopicSlug);
+    const activeCatId = resolved ? resolved.category.id : null;
+    const activeSubKey = resolved ? (resolved.subcategory.id || resolved.subcategory.slug) : null;
+    const targetSlug = resolved ? resolved.topic.slug : activeTopicSlug;
+
+    if (activeSubKey) {
+        openSubcategories.add(activeSubKey);
+    }
+
     container.innerHTML = window.PREPFLOW_TOPICS_DATA.map((cat, catIdx) => {
-        let containsActive = false;
-        cat.subcategories.forEach(sub => {
-            if (sub.topics.some(t => t.slug === activeTopicSlug || t.id === activeTopicSlug)) {
-                containsActive = true;
-                openSubcategories.add(sub.id || sub.slug);
-            }
-        });
-        
-        const isCatOpen = containsActive || catIdx === 0;
+        // ONLY keep the category containing the active topic open, or default to first category if none
+        const isCatOpen = activeCatId ? (cat.id === activeCatId) : (catIdx === 0);
+        const isCatActive = Boolean(activeCatId && cat.id === activeCatId);
 
         return `
             <div class="category-group ${isCatOpen ? 'open' : ''}" id="cat-group-${cat.id}">
-                <div class="category-header" onclick="toggleCategoryGroup('${cat.id}')">
+                <div class="category-header ${isCatActive ? 'active-category-header' : ''}" onclick="toggleCategoryGroup('${cat.id}')">
                     <span>${cat.icon || '⚡'} ${cat.name}</span>
                     <span class="category-arrow">▶</span>
                 </div>
                 <div class="subcategory-list">
                     ${cat.subcategories.map((sub, subIdx) => {
                         const subKey = sub.id || sub.slug;
-                        if (sub.topics.some(t => t.slug === activeTopicSlug || t.id === activeTopicSlug) || (openSubcategories.size === 0 && catIdx === 0 && subIdx === 0)) {
-                            openSubcategories.add(subKey);
-                        }
-                        const isSubOpen = openSubcategories.has(subKey);
+                        const isSubOpen = (activeSubKey === subKey) || openSubcategories.has(subKey) || (openSubcategories.size === 0 && catIdx === 0 && subIdx === 0);
+                        const isSubActive = Boolean(activeSubKey && (subKey === activeSubKey || sub.id === activeSubKey || sub.slug === activeSubKey));
 
                         return `
                             <div class="subcategory-group ${isSubOpen ? 'open' : ''}" id="sub-group-${subKey}">
-                                <div class="subcategory-header" onclick="toggleSubcategoryGroup(event, '${subKey}')">
+                                <div class="subcategory-header ${isSubActive ? 'active-subcategory-header' : ''}" onclick="toggleSubcategoryGroup(event, '${subKey}')">
                                     <div style="display:flex; align-items:center; gap:0.45rem; overflow:hidden; text-overflow:ellipsis;">
                                         <span style="font-size:0.9rem;">${sub.icon || '📁'}</span>
                                         <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sub.name}</span>
@@ -125,15 +168,18 @@ function renderStaticTree(activeTopicSlug) {
                                     ${sub.topics.map(t => {
                                         const isDone = userCompletedTopics.has(t.id) || userCompletedTopics.has(t.slug);
                                         const isBooked = userBookmarkedTopics.has(t.id) || userBookmarkedTopics.has(t.slug);
+                                        const isSelected = resolved ? (t.slug === resolved.topic.slug || t.id === resolved.topic.id) : (t.slug === targetSlug);
                                         return `
-                                            <div class="topic-item ${t.slug === activeTopicSlug ? 'active' : ''} ${isDone ? 'completed-item' : ''}"
+                                            <div class="topic-item ${isSelected ? 'active' : ''} ${isDone ? 'completed-item' : ''}"
                                                  id="nav-topic-${t.slug}"
+                                                 data-slug="${t.slug}"
                                                  onclick="selectTopic('${t.slug}', '${cat.name}', '${sub.name}')">
-                                                <div style="display:flex; align-items:center; gap:0.4rem; overflow:hidden; text-overflow:ellipsis;">
+                                                <div style="display:flex; align-items:center; gap:0.4rem; overflow:hidden; text-overflow:ellipsis; flex:1;">
+                                                    ${isSelected ? '<span class="active-topic-indicator"></span>' : ''}
                                                     <span class="status-indicator" style="font-size:0.85rem;">${isDone ? '✅' : '⚪'}</span>
-                                                    <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.title}</span>
+                                                    <span class="topic-item-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.title}</span>
                                                 </div>
-                                                <div style="display:flex; align-items:center; gap:0.25rem;">
+                                                <div style="display:flex; align-items:center; gap:0.25rem; flex-shrink:0;">
                                                     ${isBooked ? '<span style="font-size:0.75rem;">🔖</span>' : ''}
                                                     <span class="difficulty-tag difficulty-${t.difficulty}">${t.difficulty}</span>
                                                 </div>
@@ -176,47 +222,71 @@ function toggleSubcategoryGroup(event, subId) {
 function loadTopicBySlug(slug) {
     if (!window.PREPFLOW_TOPICS_DATA) return;
     
-    let foundTopic = null;
-    let foundCategory = "Data Structures & Algorithms";
-    let foundSubcategory = "1. Basics & Foundations";
-    
-    // Find topic in static hierarchy
-    for (const cat of window.PREPFLOW_TOPICS_DATA) {
-        for (const sub of cat.subcategories) {
-            for (const top of sub.topics) {
-                if (top.slug === slug || top.id === slug) {
-                    foundTopic = top;
-                    foundCategory = cat.name;
-                    foundSubcategory = sub.name;
-                    break;
-                }
-            }
-            if (foundTopic) break;
-        }
-        if (foundTopic) break;
-    }
+    const resolved = findTopicBySlugOrId(slug);
+    let foundTopic = resolved ? resolved.topic : null;
+    let foundCategory = resolved ? resolved.category.name : "Data Structures & Algorithms";
+    let foundSubcategory = resolved ? resolved.subcategory.name : "1. Basics & Foundations";
 
     if (!foundTopic) {
         foundTopic = window.PREPFLOW_TOPICS_DATA[0].subcategories[0].topics[0];
     }
     
     currentTopicData = foundTopic;
-    
-    // Update active class in sidebar tree & expand parent accordion groups
-    document.querySelectorAll('.topic-item').forEach(el => el.classList.remove('active'));
+
+    // Ensure Sidebar is OPEN on desktop so roadmap is immediately visible
+    const sidebar = document.querySelector('.sidebar-left');
+    if (sidebar && window.innerWidth > 992) {
+        sidebar.classList.remove('collapsed');
+        localStorage.setItem('sidebar_collapsed', 'false');
+        if (typeof updateSidebarToggleState === 'function') updateSidebarToggleState();
+    }
+
+    // Update active highlight in sidebar tree
+    document.querySelectorAll('.topic-item').forEach(el => {
+        el.classList.remove('active');
+        const dot = el.querySelector('.active-topic-indicator');
+        if (dot) dot.remove();
+    });
+    document.querySelectorAll('.active-category-header').forEach(el => el.classList.remove('active-category-header'));
+    document.querySelectorAll('.active-subcategory-header').forEach(el => el.classList.remove('active-subcategory-header'));
+
     const activeItem = document.getElementById(`nav-topic-${foundTopic.slug}`);
     if (activeItem) {
         activeItem.classList.add('active');
+        const titleWrap = activeItem.querySelector('div:first-child');
+        if (titleWrap && !titleWrap.querySelector('.active-topic-indicator')) {
+            const dot = document.createElement('span');
+            dot.className = 'active-topic-indicator';
+            titleWrap.insertBefore(dot, titleWrap.firstChild);
+        }
+
         const subGroup = activeItem.closest('.subcategory-group');
         if (subGroup) {
             subGroup.classList.add('open');
+            const subHeader = subGroup.querySelector('.subcategory-header');
+            if (subHeader) subHeader.classList.add('active-subcategory-header');
             const subId = subGroup.id.replace('sub-group-', '');
             openSubcategories.add(subId);
         }
         const catGroup = activeItem.closest('.category-group');
         if (catGroup) {
             catGroup.classList.add('open');
+            const catHeader = catGroup.querySelector('.category-header');
+            if (catHeader) catHeader.classList.add('active-category-header');
         }
+
+        // Smoothly auto-scroll sidebar to center the active topic!
+        setTimeout(() => {
+            activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 120);
+    }
+
+    // Scroll main learning area to top
+    const mainArea = document.querySelector('.main-learning-area');
+    if (mainArea) {
+        mainArea.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // Update Breadcrumbs & Title
@@ -242,9 +312,6 @@ function loadTopicBySlug(slug) {
 
     // Render Linked LeetCode Practice Questions
     renderPracticeQuestions(foundTopic.practice_questions);
-    
-    // Close mobile drawer if open
-    closeMobileSidebar();
 }
 
 function selectTopic(slug, catName, subName) {
@@ -525,10 +592,9 @@ function initSidebarState() {
     const isMobile = window.innerWidth <= 992;
     const sidebar = document.querySelector('.sidebar-left');
     if (!isMobile && sidebar) {
-        const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
-        if (isCollapsed) {
-            sidebar.classList.add('collapsed');
-        }
+        // Guarantee sidebar is OPEN and roadmap is visible when learning
+        sidebar.classList.remove('collapsed');
+        localStorage.setItem('sidebar_collapsed', 'false');
     }
     updateSidebarToggleState();
 }

@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Learning Hub - PrepFlow AI</title>
-    <link rel="stylesheet" href="/static/css/main.css">
-    <link rel="stylesheet" href="/static/css/learning.css?v=4.1">
+    <link rel="stylesheet" href="/static/css/main.css?v=2.4">
+    <link rel="stylesheet" href="/static/css/learning.css?v=4.6">
     <link rel="stylesheet" href="/static/css/ai-chat.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
@@ -25,6 +25,15 @@
             <div class="sidebar-header">
                 <h3>📚 Learning Roadmap</h3>
                 <button class="btn btn-sm btn-secondary sidebar-close-btn" onclick="toggleSidebar()" id="sidebarCloseBtn" title="Hide Sidebar">✕</button>
+            </div>
+            <div class="sidebar-search-container">
+                <input type="text" 
+                       id="sidebarSearchInput" 
+                       class="sidebar-search-input" 
+                       placeholder="🔍 Filter roadmap topics..." 
+                       oninput="filterSidebarTopics(this.value)"
+                       autocomplete="off"
+                       spellcheck="false">
             </div>
             <div id="sidebarAccordion"></div>
         </aside>
@@ -136,7 +145,7 @@
     <!-- SCRIPTS -->
     <script src="/static/js/api.js?v=3.0"></script>
     <script src="/static/js/auth.js?v=3.0"></script>
-    <script src="/static/js/navbar.js?v=3.0"></script>
+    <script src="/static/js/navbar.js?v=3.1"></script>
     <script src="/static/js/render-engine.js?v=3.0"></script>
     <script src="/static/js/voice.js?v=3.0"></script>
     <script src="/static/js/ai-chat.js?v=3.0"></script>
@@ -148,6 +157,7 @@
             if (k.startsWith('prepflow_solved_q')) localStorage.removeItem(k);
         });
     </script>
-    <script src="/static/js/learning.js?v=4.0"></script>
+    <script src="/static/js/search.js?v=1.1"></script>
+    <script src="/static/js/learning.js?v=4.6"></script>
 </body>
 </html>

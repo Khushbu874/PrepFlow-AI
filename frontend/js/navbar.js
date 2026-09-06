@@ -46,6 +46,16 @@ function initGlobalHeader() {
                 <li><a href="/learn.html" class="nav-item ${activeKey === 'learn' ? 'active' : ''}">Learning Hub</a></li>
             </ul>
 
+            <!-- Global Search Trigger Button -->
+            <button class="nav-search-trigger" onclick="openGlobalSearchModal()" title="Search 330+ topics, algorithms & patterns (Ctrl+K)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <span class="search-placeholder-text">Search topics...</span>
+                <kbd class="search-kbd-shortcut">Ctrl K</kbd>
+            </button>
+
             <div class="nav-actions" id="navActions" style="display:flex; align-items:center; gap:0.6rem;">
                 <button id="backendStatusBtn" class="backend-status-btn idle" onclick="initiateRenderBackend()" title="Click to initiate & wake up Render Backend server">
                     ⚡ Initiate Backend

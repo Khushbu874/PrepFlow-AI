@@ -202,6 +202,24 @@
     transform: rotate(90deg);
 }
 
+/* ACTIVE CATEGORY HEADER (Track containing active topic) */
+.category-header.active-category-header {
+    border-left: 4px solid #38bdf8 !important;
+    background: linear-gradient(90deg, rgba(30, 58, 138, 0.45) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.15) !important;
+}
+
+.category-group.open .category-header.active-category-header {
+    border-left: 4px solid #38bdf8 !important;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.35) !important;
+}
+
+.category-header.active-category-header .category-arrow {
+    color: #38bdf8 !important;
+}
+
 .subcategory-list {
     display: none;
     background: rgba(0, 0, 0, 0.2);
@@ -245,6 +263,26 @@
     color: #60a5fa;
 }
 
+/* ACTIVE SUBCATEGORY HEADER (Module containing active topic) */
+.subcategory-header.active-subcategory-header {
+    border-left: 4px solid #60a5fa !important;
+    border-color: rgba(96, 165, 250, 0.45) !important;
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.25) 0%, rgba(30, 41, 59, 0.8) 100%) !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
+}
+
+.subcategory-header.active-subcategory-header .subcategory-arrow {
+    color: #60a5fa !important;
+}
+
+.subcategory-header.active-subcategory-header .sub-topic-count {
+    background: rgba(96, 165, 250, 0.25) !important;
+    color: #bfdbfe !important;
+    font-weight: 700 !important;
+}
+
 .subcategory-arrow {
     transition: transform 0.2s ease;
     font-size: 0.72rem;
@@ -266,37 +304,73 @@
     display: block;
 }
 
+/* ==========================================================================
+   SIDEBAR TOPIC ITEM & HIGH-VISIBILITY ACTIVE HIGHLIGHT
+   ========================================================================== */
 .topic-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0.6rem 0.85rem 0.6rem 1.1rem;
-    margin: 0.15rem 0.35rem;
+    margin: 0.18rem 0.35rem;
     border-radius: var(--radius-sm);
     color: var(--text-secondary);
     font-size: 0.85rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.15s ease;
+    border-left: 3px solid transparent;
 }
 
 .topic-item:hover {
-    background-color: rgba(255, 255, 255, 0.06);
+    background-color: rgba(255, 255, 255, 0.05);
     color: var(--text-primary);
 }
 
+/* UNMISTAKABLE ACTIVE TOPIC HIGHLIGHT */
 .topic-item.active {
-    background: linear-gradient(90deg, rgba(59, 130, 246, 0.22), transparent);
-    border-left: 3px solid var(--accent-blue);
-    color: #60a5fa;
-    font-weight: 600;
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.35) 0%, rgba(59, 130, 246, 0.18) 75%, transparent 100%) !important;
+    border-left: 4px solid #38bdf8 !important;
+    box-shadow: inset 0 0 14px rgba(56, 189, 248, 0.18), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+.topic-item.active .topic-item-title {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+.topic-item.active:hover {
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.45) 0%, rgba(59, 130, 246, 0.25) 100%) !important;
+    color: #ffffff !important;
 }
 
 .topic-item.completed-item {
     border-left: 3px solid #22c55e;
 }
+
 .topic-item.completed-item span {
     color: #86efac;
+}
+
+.topic-item.completed-item.active {
+    border-left: 4px solid #38bdf8 !important;
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.35) 0%, rgba(34, 197, 94, 0.15) 100%) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+/* Clean active indicator dot on the active topic */
+.active-topic-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #38bdf8;
+    box-shadow: 0 0 6px #38bdf8;
+    display: inline-block;
+    flex-shrink: 0;
+    margin-right: 0.15rem;
 }
 
 .difficulty-tag {
