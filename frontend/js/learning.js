@@ -78,6 +78,8 @@ async function loadSolvedQuestionsFromDB() {
 /* -------------------------------------------------------------
  * 2. RENDER HIERARCHICAL SIDEBAR TREE (Category -> Subcategory -> Topic)
  * ------------------------------------------------------------- */
+const openSubcategories = new Set();
+
 function renderStaticTree(activeTopicSlug) {
     const container = document.getElementById('sidebarAccordion');
     if (!container || !window.PREPFLOW_TOPICS_DATA) return;
@@ -85,44 +87,63 @@ function renderStaticTree(activeTopicSlug) {
     container.innerHTML = window.PREPFLOW_TOPICS_DATA.map((cat, catIdx) => {
         let containsActive = false;
         cat.subcategories.forEach(sub => {
-            if (sub.topics.some(t => t.slug === activeTopicSlug)) {
+            if (sub.topics.some(t => t.slug === activeTopicSlug || t.id === activeTopicSlug)) {
                 containsActive = true;
+                openSubcategories.add(sub.id || sub.slug);
             }
         });
         
-        const isOpen = containsActive || catIdx === 0;
+        const isCatOpen = containsActive || catIdx === 0;
 
         return `
-            <div class="category-group ${isOpen ? 'open' : ''}" id="cat-group-${cat.id}">
+            <div class="category-group ${isCatOpen ? 'open' : ''}" id="cat-group-${cat.id}">
                 <div class="category-header" onclick="toggleCategoryGroup('${cat.id}')">
-                    <span>${cat.icon || '📚'} ${cat.name}</span>
+                    <span>${cat.icon || '⚡'} ${cat.name}</span>
                     <span class="category-arrow">▶</span>
                 </div>
                 <div class="subcategory-list">
-                    ${cat.subcategories.map(sub => `
-                        <div class="subcategory-header">
-                            <span>${sub.icon || '📁'}</span>
-                            <span>${sub.name}</span>
-                        </div>
-                        ${sub.topics.map(t => {
-                            const isDone = userCompletedTopics.has(t.id) || userCompletedTopics.has(t.slug);
-                            const isBooked = userBookmarkedTopics.has(t.id) || userBookmarkedTopics.has(t.slug);
-                            return `
-                                <div class="topic-item ${t.slug === activeTopicSlug ? 'active' : ''} ${isDone ? 'completed-item' : ''}"
-                                     id="nav-topic-${t.slug}"
-                                     onclick="selectTopic('${t.slug}', '${cat.name}', '${sub.name}')">
-                                    <div style="display:flex; align-items:center; gap:0.4rem; overflow:hidden; text-overflow:ellipsis;">
-                                        <span class="status-indicator" style="font-size:0.85rem;">${isDone ? '✅' : '⚪'}</span>
-                                        <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.title}</span>
+                    ${cat.subcategories.map((sub, subIdx) => {
+                        const subKey = sub.id || sub.slug;
+                        if (sub.topics.some(t => t.slug === activeTopicSlug || t.id === activeTopicSlug) || (openSubcategories.size === 0 && catIdx === 0 && subIdx === 0)) {
+                            openSubcategories.add(subKey);
+                        }
+                        const isSubOpen = openSubcategories.has(subKey);
+
+                        return `
+                            <div class="subcategory-group ${isSubOpen ? 'open' : ''}" id="sub-group-${subKey}">
+                                <div class="subcategory-header" onclick="toggleSubcategoryGroup(event, '${subKey}')">
+                                    <div style="display:flex; align-items:center; gap:0.45rem; overflow:hidden; text-overflow:ellipsis;">
+                                        <span style="font-size:0.9rem;">${sub.icon || '📁'}</span>
+                                        <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sub.name}</span>
                                     </div>
-                                    <div style="display:flex; align-items:center; gap:0.25rem;">
-                                        ${isBooked ? '<span style="font-size:0.75rem;">🔖</span>' : ''}
-                                        <span class="difficulty-tag difficulty-${t.difficulty}">${t.difficulty}</span>
+                                    <div style="display:flex; align-items:center; gap:0.35rem; flex-shrink:0;">
+                                        <span class="sub-topic-count" style="font-size:0.68rem; padding:0.1rem 0.4rem; background:rgba(255,255,255,0.08); border-radius:10px; color:var(--text-muted); font-weight:600;">${sub.topics.length}</span>
+                                        <span class="subcategory-arrow">▶</span>
                                     </div>
                                 </div>
-                            `;
-                        }).join('')}
-                    `).join('')}
+                                <div class="topic-list">
+                                    ${sub.topics.map(t => {
+                                        const isDone = userCompletedTopics.has(t.id) || userCompletedTopics.has(t.slug);
+                                        const isBooked = userBookmarkedTopics.has(t.id) || userBookmarkedTopics.has(t.slug);
+                                        return `
+                                            <div class="topic-item ${t.slug === activeTopicSlug ? 'active' : ''} ${isDone ? 'completed-item' : ''}"
+                                                 id="nav-topic-${t.slug}"
+                                                 onclick="selectTopic('${t.slug}', '${cat.name}', '${sub.name}')">
+                                                <div style="display:flex; align-items:center; gap:0.4rem; overflow:hidden; text-overflow:ellipsis;">
+                                                    <span class="status-indicator" style="font-size:0.85rem;">${isDone ? '✅' : '⚪'}</span>
+                                                    <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.title}</span>
+                                                </div>
+                                                <div style="display:flex; align-items:center; gap:0.25rem;">
+                                                    ${isBooked ? '<span style="font-size:0.75rem;">🔖</span>' : ''}
+                                                    <span class="difficulty-tag difficulty-${t.difficulty}">${t.difficulty}</span>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             </div>
         `;
@@ -133,6 +154,19 @@ function toggleCategoryGroup(catId) {
     const group = document.getElementById(`cat-group-${catId}`);
     if (group) {
         group.classList.toggle('open');
+    }
+}
+
+function toggleSubcategoryGroup(event, subId) {
+    if (event) event.stopPropagation();
+    const group = document.getElementById(`sub-group-${subId}`);
+    if (group) {
+        group.classList.toggle('open');
+        if (group.classList.contains('open')) {
+            openSubcategories.add(subId);
+        } else {
+            openSubcategories.delete(subId);
+        }
     }
 }
 
@@ -168,10 +202,22 @@ function loadTopicBySlug(slug) {
     
     currentTopicData = foundTopic;
     
-    // Update active class in sidebar tree
+    // Update active class in sidebar tree & expand parent accordion groups
     document.querySelectorAll('.topic-item').forEach(el => el.classList.remove('active'));
     const activeItem = document.getElementById(`nav-topic-${foundTopic.slug}`);
-    if (activeItem) activeItem.classList.add('active');
+    if (activeItem) {
+        activeItem.classList.add('active');
+        const subGroup = activeItem.closest('.subcategory-group');
+        if (subGroup) {
+            subGroup.classList.add('open');
+            const subId = subGroup.id.replace('sub-group-', '');
+            openSubcategories.add(subId);
+        }
+        const catGroup = activeItem.closest('.category-group');
+        if (catGroup) {
+            catGroup.classList.add('open');
+        }
+    }
 
     // Update Breadcrumbs & Title
     document.getElementById('topicBreadcrumb').innerHTML = `<span>${foundCategory}</span> ➔ <span>${foundSubcategory}</span>`;
