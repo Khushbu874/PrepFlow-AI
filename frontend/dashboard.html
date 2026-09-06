@@ -1,115 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - PrepFlow AI</title>
     <link rel="stylesheet" href="/static/css/main.css?v=2.4">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+        rel="stylesheet">
 </head>
+
 <body>
     <div id="header-container"></div>
 
     <main style="max-width:1250px; margin:1.5rem auto; padding:0 1.25rem; flex:1; width:100%;">
         <!-- Welcome Banner -->
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:1.5rem; gap:1rem;">
-            <div style="min-width:0; flex:1;">
-                <h1 style="font-size:clamp(1.35rem, 4.5vw, 2.1rem); font-weight:800; line-height:1.25; margin-bottom:0.35rem; word-break:break-word;">
-                    Welcome back, <span id="userNameWelcome" style="background:linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Learner</span> 👋
-                </h1>
-                <p style="color:var(--text-secondary); font-size:0.92rem; word-break:break-word;">Real-time preparation analytics, topic mastery progress, and practice metrics.</p>
-            </div>
-            <div style="display:flex; gap:0.75rem; align-items:center;">
-                <div class="card" style="padding:0.6rem 1rem; display:flex; align-items:center; gap:0.5rem; background:rgba(245,158,11,0.1); border-color:var(--accent-amber);">
-                    <span style="font-size:1.2rem;">🔥</span>
-                    <div>
-                        <div style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">ACTIVE STREAK</div>
-                        <div style="font-size:0.95rem; font-weight:800; color:var(--accent-amber);" id="streakDaysText">5 Days</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Interactive Quick Topic Search Bar -->
-        <div id="dashboardSearchContainer" style="margin-bottom:2rem; position:relative;">
-            <div class="dashboard-search-wrapper">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <input type="text" 
-                       id="dashboardSearchInput" 
-                       class="dashboard-search-input" 
-                       placeholder="🔍 Search any topic, pattern, or algorithm (e.g. Binary Search, OOP, Cache, Sharding)..." 
-                       autocomplete="off"
-                       spellcheck="false">
-                <button id="clearDashboardSearchBtn" class="search-modal-close-btn" style="display:none; width:24px; height:24px; font-size:0.75rem;" title="Clear Search">
-                    ✕
-                </button>
-            </div>
-            <!-- Live Results Dropdown -->
-            <div class="dashboard-search-dropdown" id="dashboardSearchDropdown"></div>
+        <div style="margin-bottom:1.75rem;">
+            <h1 style="font-size:clamp(1.35rem, 4.5vw, 2.1rem); font-weight:800; line-height:1.25; margin-bottom:0.35rem; word-break:break-word;">
+                Welcome back, <span id="userNameWelcome" style="background:linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Learner</span> 👋
+            </h1>
+            <p style="color:var(--text-secondary); font-size:0.92rem; word-break:break-word;">Real-time preparation analytics, topic mastery progress, and practice metrics.</p>
         </div>
 
         <!-- Resume Learning Point -->
         <div id="resumeLearningContainer" style="margin-bottom:2rem;"></div>
 
         <!-- Preparation & Performance Analytics Overview -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <div
+            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
             <h3 style="font-size:1.25rem; font-weight:800; display:flex; align-items:center; gap:0.5rem; margin:0;">
                 <span>📈</span>
                 <span>Performance & Progress Analytics</span>
             </h3>
-            <button onclick="refreshDashboardDataSync()" class="btn btn-sm btn-outline" id="refreshDashboardBtn" title="Sync dashboard metrics with DB" style="display:flex; align-items:center; gap:0.35rem;">
-                <svg id="refreshDashboardSpinner" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 0-10.57L2.1 5"/><path d="M2.5 22v-6h6"/></svg>
+            <button onclick="refreshDashboardDataSync()" class="btn btn-sm btn-outline" id="refreshDashboardBtn"
+                title="Sync dashboard metrics with DB" style="display:flex; align-items:center; gap:0.35rem;">
+                <svg id="refreshDashboardSpinner" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 0-10.57L2.1 5" />
+                    <path d="M2.5 22v-6h6" />
+                </svg>
                 <span>Sync DB Data</span>
             </button>
         </div>
         <div class="grid-4" style="margin-bottom:2.25rem;">
             <div class="card">
                 <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted);">OVERALL PREPARATION</div>
-                <div style="font-size:2rem; font-weight:800; color:var(--accent-blue); margin:0.3rem 0;" id="overallProgressText">0%</div>
+                <div style="font-size:2rem; font-weight:800; color:var(--accent-blue); margin:0.3rem 0;"
+                    id="overallProgressText">0%</div>
                 <div class="progress-bar-bg">
                     <div class="progress-bar-fill" id="overallProgressBar" style="width: 0%;"></div>
                 </div>
             </div>
             <div class="card">
                 <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted);">TOPICS MASTERED</div>
-                <div style="font-size:2rem; font-weight:800; color:var(--accent-green); margin:0.3rem 0;" id="completedTopicsCountText">0</div>
-                <div style="font-size:0.75rem; color:var(--text-muted);" id="totalTopicsMetaText">0 / 0 Topics Completed</div>
+                <div style="font-size:2rem; font-weight:800; color:var(--accent-green); margin:0.3rem 0;"
+                    id="completedTopicsCountText">0</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);" id="totalTopicsMetaText">0 / 0 Topics Completed
+                </div>
             </div>
             <div class="card">
                 <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted);">SOLVED QUESTIONS</div>
-                <div style="font-size:2rem; font-weight:800; color:var(--accent-purple); margin:0.3rem 0;" id="solvedQuestionsCountText">0</div>
+                <div style="font-size:2rem; font-weight:800; color:var(--accent-purple); margin:0.3rem 0;"
+                    id="solvedQuestionsCountText">0</div>
                 <div style="font-size:0.75rem; color:var(--text-muted);">LeetCode & Practice Problems</div>
             </div>
             <div class="card">
                 <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted);">BOOKMARKED FOR REVISION</div>
-                <div style="font-size:2rem; font-weight:800; color:var(--accent-rose); margin:0.3rem 0;" id="revisionCountText">0</div>
+                <div style="font-size:2rem; font-weight:800; color:var(--accent-rose); margin:0.3rem 0;"
+                    id="revisionCountText">0</div>
                 <div style="font-size:0.75rem; color:var(--text-muted);">Topics flagged for review</div>
             </div>
         </div>
 
         <!-- Curriculum Tracks (The 3 Core Categories) -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <div
+            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
             <div>
                 <h3 style="font-size:1.25rem; font-weight:800; display:flex; align-items:center; gap:0.5rem; margin:0;">
                     <span>🧭</span>
                     <span>Curriculum Tracks Overview</span>
                 </h3>
-                <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.2rem;">Mastery segregated across the 3 core interview preparation curricula.</p>
+                <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.2rem;">Mastery segregated across
+                    the 3 core interview preparation curricula.</p>
             </div>
         </div>
         <div class="category-tracks-grid" id="categoryTracksContainer"></div>
 
         <!-- Module Mastery Breakdown (Categorized by Track) -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.75rem;">
+        <div
+            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.75rem;">
             <div>
                 <h3 style="font-size:1.25rem; font-weight:800; display:flex; align-items:center; gap:0.5rem; margin:0;">
                     <span>📚</span>
                     <span>Module Mastery Breakdown by Category</span>
                 </h3>
-                <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.2rem;">Step-by-step module sequences grouped into distinct categories.</p>
+                <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.2rem;">Step-by-step module
+                    sequences grouped into distinct categories.</p>
             </div>
         </div>
 
@@ -117,19 +104,25 @@
         <div class="category-filter-tabs" id="categoryFilterTabs">
             <button class="category-filter-tab active" onclick="switchCategoryFilter('all')" id="tab-all">
                 <span>🌟 All Tracks</span>
-                <span class="badge badge-secondary" id="count-badge-all" style="font-size:0.7rem; padding:0.1rem 0.4rem;">43 Modules</span>
+                <span class="badge badge-secondary" id="count-badge-all"
+                    style="font-size:0.7rem; padding:0.1rem 0.4rem;">43 Modules</span>
             </button>
             <button class="category-filter-tab" onclick="switchCategoryFilter('cat-dsa')" id="tab-cat-dsa">
                 <span>⚡ Data Structures & Algorithms</span>
-                <span class="badge badge-easy" id="count-badge-dsa" style="font-size:0.7rem; padding:0.1rem 0.4rem;">17 Modules</span>
+                <span class="badge badge-easy" id="count-badge-dsa" style="font-size:0.7rem; padding:0.1rem 0.4rem;">17
+                    Modules</span>
             </button>
-            <button class="category-filter-tab" onclick="switchCategoryFilter('cat-cs-fundamentals')" id="tab-cat-cs-fundamentals">
+            <button class="category-filter-tab" onclick="switchCategoryFilter('cat-cs-fundamentals')"
+                id="tab-cat-cs-fundamentals">
                 <span>💻 CS Fundamentals</span>
-                <span class="badge badge-medium" id="count-badge-cs" style="font-size:0.7rem; padding:0.1rem 0.4rem;">8 Modules</span>
+                <span class="badge badge-medium" id="count-badge-cs" style="font-size:0.7rem; padding:0.1rem 0.4rem;">8
+                    Modules</span>
             </button>
-            <button class="category-filter-tab" onclick="switchCategoryFilter('cat-system-design')" id="tab-cat-system-design">
+            <button class="category-filter-tab" onclick="switchCategoryFilter('cat-system-design')"
+                id="tab-cat-system-design">
                 <span>🏗️ System Design</span>
-                <span class="badge badge-hard" id="count-badge-sd" style="font-size:0.7rem; padding:0.1rem 0.4rem;">18 Modules</span>
+                <span class="badge badge-hard" id="count-badge-sd" style="font-size:0.7rem; padding:0.1rem 0.4rem;">18
+                    Modules</span>
             </button>
         </div>
 
@@ -138,16 +131,23 @@
 
         <!-- Bookmarked Topics Section -->
         <div class="card" style="margin-bottom:2rem;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
-                <h3 style="font-size:1.15rem; font-weight:700; color:var(--accent-rose); display:flex; align-items:center; gap:0.4rem; margin:0;">
+            <div
+                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+                <h3
+                    style="font-size:1.15rem; font-weight:700; color:var(--accent-rose); display:flex; align-items:center; gap:0.4rem; margin:0;">
                     <span>📌</span>
                     <span>Bookmarked Topics</span>
                 </h3>
                 <div style="display:flex; gap:0.4rem; flex-wrap:wrap;" id="bookmarkFilterTabs">
-                    <button class="btn btn-sm btn-outline active-filter-bm" style="font-size:0.75rem; padding:0.2rem 0.65rem;" onclick="filterBookmarks('all')" id="bm-tab-all">All Tracks</button>
-                    <button class="btn btn-sm btn-outline" style="font-size:0.75rem; padding:0.2rem 0.65rem;" onclick="filterBookmarks('cat-dsa')" id="bm-tab-dsa">⚡ DSA</button>
-                    <button class="btn btn-sm btn-outline" style="font-size:0.75rem; padding:0.2rem 0.65rem;" onclick="filterBookmarks('cat-cs-fundamentals')" id="bm-tab-cs">💻 CS</button>
-                    <button class="btn btn-sm btn-outline" style="font-size:0.75rem; padding:0.2rem 0.65rem;" onclick="filterBookmarks('cat-system-design')" id="bm-tab-sd">🏗️ System Design</button>
+                    <button class="btn btn-sm btn-outline active-filter-bm"
+                        style="font-size:0.75rem; padding:0.2rem 0.65rem;" onclick="filterBookmarks('all')"
+                        id="bm-tab-all">All Tracks</button>
+                    <button class="btn btn-sm btn-outline" style="font-size:0.75rem; padding:0.2rem 0.65rem;"
+                        onclick="filterBookmarks('cat-dsa')" id="bm-tab-dsa">⚡ DSA</button>
+                    <button class="btn btn-sm btn-outline" style="font-size:0.75rem; padding:0.2rem 0.65rem;"
+                        onclick="filterBookmarks('cat-cs-fundamentals')" id="bm-tab-cs">💻 CS</button>
+                    <button class="btn btn-sm btn-outline" style="font-size:0.75rem; padding:0.2rem 0.65rem;"
+                        onclick="filterBookmarks('cat-system-design')" id="bm-tab-sd">🏗️ System Design</button>
                 </div>
             </div>
             <div id="weakTopicsList"></div>
@@ -158,7 +158,8 @@
     <script src="/static/js/auth.js?v=3.0"></script>
     <script src="/static/js/navbar.js?v=3.1"></script>
     <script src="/static/js/topics-data.js?v=11.0"></script>
-    <script src="/static/js/search.js?v=1.1"></script>
+    <script src="/static/js/search.js?v=1.2"></script>
     <script src="/static/js/dashboard.js?v=3.4"></script>
 </body>
+
 </html>

@@ -8,10 +8,10 @@ let activeBookmarkFilter = 'all';
 document.addEventListener('DOMContentLoaded', () => {
     requireAuth();
     renderNavProfile();
-    
+
     const user = getCurrentUser();
     document.getElementById('userNameWelcome').innerText = user ? user.name : 'Learner';
-    
+
     // Show initial loading skeletons
     const moduleContainer = document.getElementById('moduleAnalyticsContainer');
     if (moduleContainer) {
@@ -154,8 +154,8 @@ async function loadDashboardData(userId) {
                     });
                 });
 
-                const catPercentage = catTotalTopics > 0 
-                    ? Math.round((catCompletedTopics / catTotalTopics) * 100) 
+                const catPercentage = catTotalTopics > 0
+                    ? Math.round((catCompletedTopics / catTotalTopics) * 100)
                     : 0;
 
                 // Fallback resume topic if all completed or default to first topic
@@ -189,14 +189,14 @@ async function loadDashboardData(userId) {
 
         cachedCategoriesData = categoriesAnalysis;
 
-        const overallPercentage = totalTopicsCount > 0 
-            ? Math.round((completedTopicsCount / totalTopicsCount) * 100) 
+        const overallPercentage = totalTopicsCount > 0
+            ? Math.round((completedTopicsCount / totalTopicsCount) * 100)
             : 0;
 
         // 4. Update Overview Analytics Cards
         document.getElementById('overallProgressText').innerText = `${overallPercentage}%`;
         document.getElementById('overallProgressBar').style.width = `${overallPercentage}%`;
-        
+
         document.getElementById('completedTopicsCountText').innerText = completedTopicsCount;
         document.getElementById('totalTopicsMetaText').innerText = `${completedTopicsCount} / ${totalTopicsCount} Topics Completed`;
 
@@ -306,7 +306,7 @@ function renderCategoryTracksOverview(categories) {
         let trackClass = 'track-dsa';
         let barGradient = 'linear-gradient(90deg, #3b82f6, #8b5cf6)';
         let badgeStyle = 'badge-easy';
-        
+
         if (c.id === 'cat-cs-fundamentals') {
             trackClass = 'track-cs';
             barGradient = 'linear-gradient(90deg, #10b981, #06b6d4)';
@@ -522,7 +522,7 @@ async function resolveAndRenderBookmarks(userId, bookmarkedTopicIds) {
         if (Array.isArray(cachedBook)) {
             cachedBook.forEach(id => allBookmarkedIds.add(id));
         }
-    } catch (e) {}
+    } catch (e) { }
 
     // 2. Fetch from backend API
     try {

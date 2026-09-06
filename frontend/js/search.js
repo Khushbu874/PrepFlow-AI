@@ -3,6 +3,7 @@
 let allTopicsIndex = null;
 let activeModalCategoryFilter = 'all';
 let modalSelectedResultIndex = -1;
+let modalCurrentLimit = 25;
 
 // Initialize Topic Index from PREPFLOW_TOPICS_DATA
 function getTopicsIndex() {
@@ -36,14 +37,23 @@ function getTopicsIndex() {
     return allTopicsIndex;
 }
 
-// Search algorithm with smart scoring
-function searchTopics(query, categoryFilter = 'all', limit = 20) {
+// Search algorithm with smart scoring & rich metadata
+function searchTopicsWithMeta(query, categoryFilter = 'all', limit = 25) {
     const topics = getTopicsIndex();
+    
+    // Topics filtered by category track
+    const categoryTopics = (categoryFilter === 'all') 
+        ? topics 
+        : topics.filter(t => t.categoryId === categoryFilter);
+
     if (!query || !query.trim()) {
-        const filtered = (categoryFilter === 'all') 
-            ? topics 
-            : topics.filter(t => t.categoryId === categoryFilter);
-        return filtered.slice(0, limit);
+        return {
+            results: categoryTopics.slice(0, limit),
+            totalMatches: categoryTopics.length,
+            totalInCategory: categoryTopics.length,
+            totalAll: topics.length,
+            isQueryEmpty: true
+        };
     }
 
     const cleanQuery = query.trim().toLowerCase();
@@ -51,9 +61,7 @@ function searchTopics(query, categoryFilter = 'all', limit = 20) {
 
     const scored = [];
 
-    topics.forEach(t => {
-        if (categoryFilter !== 'all' && t.categoryId !== categoryFilter) return;
-
+    categoryTopics.forEach(t => {
         const titleLower = t.title.toLowerCase();
         let score = 0;
 
@@ -90,7 +98,18 @@ function searchTopics(query, categoryFilter = 'all', limit = 20) {
     });
 
     scored.sort((a, b) => b.score - a.score);
-    return scored.slice(0, limit).map(s => s.topic);
+    return {
+        results: scored.slice(0, limit).map(s => s.topic),
+        totalMatches: scored.length,
+        totalInCategory: categoryTopics.length,
+        totalAll: topics.length,
+        isQueryEmpty: false
+    };
+}
+
+// Backward-compatible searchTopics wrapper
+function searchTopics(query, categoryFilter = 'all', limit = 20) {
+    return searchTopicsWithMeta(query, categoryFilter, limit).results;
 }
 
 // Highlight matched search tokens in text safely
@@ -169,6 +188,7 @@ function ensureSearchModalInDOM() {
 
 function openGlobalSearchModal(initialQuery = '') {
     ensureSearchModalInDOM();
+    modalCurrentLimit = 25; // Reset limit when opening modal
     const overlay = document.getElementById('prepflowSearchModalOverlay');
     const input = document.getElementById('globalSearchModalInput');
     if (!overlay || !input) return;
@@ -203,6 +223,7 @@ function handleSearchOverlayClick(event) {
 }
 
 function setModalCategoryFilter(catId) {
+    modalCurrentLimit = 25; // Reset limit on tab change
     activeModalCategoryFilter = catId;
     document.querySelectorAll('.search-modal-tab').forEach(b => b.classList.remove('active'));
     const tab = document.getElementById(`modalTab-${catId}`);
@@ -213,6 +234,7 @@ function setModalCategoryFilter(catId) {
 }
 
 function onModalSearchInput(val) {
+    modalCurrentLimit = 25; // Reset limit when search query changes
     modalSelectedResultIndex = -1;
     renderModalResults(val);
 }
@@ -222,10 +244,38 @@ function renderModalResults(query) {
     const countBadge = document.getElementById('searchResultCountBadge');
     if (!container) return;
 
-    const results = searchTopics(query, activeModalCategoryFilter, 25);
+    const data = searchTopicsWithMeta(query, activeModalCategoryFilter, modalCurrentLimit);
+    const { results, totalMatches, totalInCategory, isQueryEmpty } = data;
 
+    const categoryLabels = {
+        'all': 'All Tracks',
+        'cat-dsa': 'DSA',
+        'cat-cs-fundamentals': 'CS Fundamentals',
+        'cat-system-design': 'System Design'
+    };
+    const catName = categoryLabels[activeModalCategoryFilter] || '';
+
+    // Dynamic Topic Count Badge
     if (countBadge) {
-        countBadge.innerText = `${results.length} topic${results.length === 1 ? '' : 's'} found`;
+        if (isQueryEmpty) {
+            if (activeModalCategoryFilter === 'all') {
+                countBadge.innerText = (results.length < totalMatches)
+                    ? `Showing ${results.length} of ${totalMatches} total topics`
+                    : `${totalMatches} topics available`;
+            } else {
+                countBadge.innerText = (results.length < totalMatches)
+                    ? `Showing ${results.length} of ${totalMatches} ${catName} topics`
+                    : `${totalMatches} ${catName} topics available`;
+            }
+        } else {
+            if (totalMatches === 0) {
+                countBadge.innerText = `0 topics found`;
+            } else if (totalMatches <= results.length) {
+                countBadge.innerText = `${totalMatches} topic${totalMatches === 1 ? '' : 's'} found`;
+            } else {
+                countBadge.innerText = `Showing ${results.length} of ${totalMatches} topics found`;
+            }
+        }
     }
 
     if (results.length === 0) {
@@ -233,13 +283,13 @@ function renderModalResults(query) {
             <div class="search-empty-state">
                 <div style="font-size:2rem; margin-bottom:0.4rem;">🔍</div>
                 <h4 style="color:var(--text-primary); margin-bottom:0.25rem;">No topics found</h4>
-                <p style="color:var(--text-muted); font-size:0.85rem;">No lessons matching "${escapeHtml(query)}" in this track.</p>
+                <p style="color:var(--text-muted); font-size:0.85rem;">No lessons matching "${escapeHtml(query)}" in ${catName || 'this track'}.</p>
             </div>
         `;
         return;
     }
 
-    container.innerHTML = results.map((t, idx) => {
+    let itemsHtml = results.map((t, idx) => {
         let badgeClass = 'category-badge-dsa';
         if (t.categoryId === 'cat-cs-fundamentals') badgeClass = 'category-badge-cs';
         else if (t.categoryId === 'cat-system-design') badgeClass = 'category-badge-sd';
@@ -269,6 +319,28 @@ function renderModalResults(query) {
             </div>
         `;
     }).join('');
+
+    // If there are more matching topics than currently shown, render Load More button
+    if (totalMatches > results.length) {
+        const remaining = totalMatches - results.length;
+        itemsHtml += `
+            <div style="padding: 0.85rem; text-align: center;">
+                <button type="button" 
+                        class="search-load-more-btn" 
+                        onclick="loadMoreModalResults()">
+                    Show all ${totalMatches} matching topics (+${remaining} more) ↓
+                </button>
+            </div>
+        `;
+    }
+
+    container.innerHTML = itemsHtml;
+}
+
+function loadMoreModalResults() {
+    modalCurrentLimit = 999;
+    const input = document.getElementById('globalSearchModalInput');
+    renderModalResults(input ? input.value : '');
 }
 
 function selectResultIndex(idx) {
@@ -463,6 +535,8 @@ window.onModalSearchKeydown = onModalSearchKeydown;
 window.navigateToTopic = navigateToTopic;
 window.initDashboardSearch = initDashboardSearch;
 window.filterSidebarTopics = filterSidebarTopics;
+window.loadMoreModalResults = loadMoreModalResults;
+window.searchTopicsWithMeta = searchTopicsWithMeta;
 
 document.addEventListener('DOMContentLoaded', () => {
     ensureSearchModalInDOM();
