@@ -24,13 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     syncAllDataFromDB(topicSlug);
 });
 
-// Auto sync with Supabase DB whenever user switches back to this tab or window gets focus
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-        const slug = currentTopicData ? currentTopicData.slug : 'time-complexity';
-        syncAllDataFromDB(slug);
-    }
-});
+// DB state loaded on page load or manual Sync DB click
 
 async function syncAllDataFromDB(targetSlug) {
     const slug = targetSlug || (currentTopicData ? currentTopicData.slug : 'time-complexity');
@@ -796,7 +790,7 @@ function scrollToNotesSection() {
     }
 }
 
-async function renderTopicNotes(topicSlug) {
+async function renderTopicNotes(topicSlug, fetchFromDb = true) {
     const slug = topicSlug || (currentTopicData ? currentTopicData.slug : '');
     if (!slug) return;
 
@@ -807,8 +801,8 @@ async function renderTopicNotes(topicSlug) {
     // 1. Render immediately from local cache
     let notes = getTopicNotes(slug);
     
-    // If local cache is empty, display a sleek loading state first
-    if (!notes || notes.length === 0) {
+    // If local cache is empty and we are fetching from DB, display a sleek loading state first
+    if ((!notes || notes.length === 0) && fetchFromDb) {
         notesContainer.innerHTML = `
             <div style="text-align:center; padding:1.25rem; background:rgba(0,0,0,0.15); border:1px dashed var(--border-color); border-radius:var(--radius-sm); color:var(--text-muted); font-size:0.88rem; display:flex; align-items:center; justify-content:center; gap:0.5rem;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 1s linear infinite;"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 0-10.57L2.1 5"/><path d="M2.5 22v-6h6"/></svg>
@@ -819,23 +813,25 @@ async function renderTopicNotes(topicSlug) {
         displayTopicNotes(notes, notesContainer, badge);
     }
 
-    // 2. Fetch latest notes from Supabase DB if logged in
-    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    if (user && user.id) {
-        try {
-            const dbNotes = await apiFetch(`/progress/notes/${user.id}/${slug}`);
-            if (Array.isArray(dbNotes)) {
-                const formattedNotes = dbNotes.map(n => ({
-                    id: n.id,
-                    text: n.note_text,
-                    createdAt: n.created_at || n.updated_at || new Date().toISOString()
-                }));
-                saveTopicNotes(slug, formattedNotes);
-                displayTopicNotes(formattedNotes, notesContainer, badge);
+    // 2. Fetch latest notes from Supabase DB ONLY if fetchFromDb is true and user is logged in
+    if (fetchFromDb) {
+        const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+        if (user && user.id) {
+            try {
+                const dbNotes = await apiFetch(`/progress/notes/${user.id}/${slug}`);
+                if (Array.isArray(dbNotes)) {
+                    const formattedNotes = dbNotes.map(n => ({
+                        id: n.id,
+                        text: n.note_text,
+                        createdAt: n.created_at || n.updated_at || new Date().toISOString()
+                    }));
+                    saveTopicNotes(slug, formattedNotes);
+                    displayTopicNotes(formattedNotes, notesContainer, badge);
+                }
+            } catch (e) {
+                console.warn("Could not fetch topic notes from DB:", e);
+                displayTopicNotes(notes, notesContainer, badge);
             }
-        } catch (e) {
-            console.warn("Could not fetch topic notes from DB:", e);
-            displayTopicNotes(notes, notesContainer, badge);
         }
     }
 }
@@ -909,8 +905,9 @@ async function addTopicNote() {
     const notes = getTopicNotes(slug);
     const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
     
+    const tempId = 'note_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
     const newNote = {
-        id: 'note_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        id: tempId,
         text: text,
         createdAt: new Date().toISOString()
     };
@@ -919,7 +916,7 @@ async function addTopicNote() {
     saveTopicNotes(slug, notes);
 
     input.value = '';
-    renderTopicNotes(slug);
+    renderTopicNotes(slug, false);
 
     if (user && user.id) {
         try {
@@ -932,10 +929,9 @@ async function addTopicNote() {
                 })
             });
             if (serverNote && serverNote.id) {
-                // Update the note's ID to server UUID and re-render so DOM IDs are correct
                 newNote.id = serverNote.id;
                 saveTopicNotes(slug, notes);
-                renderTopicNotes(slug); // Re-render with correct server IDs
+                renderTopicNotes(slug, false);
             }
         } catch (e) {
             console.warn("Note creation DB sync failed:", e);
@@ -986,9 +982,8 @@ async function saveEditedTopicNote(noteId) {
         target.text = newText;
         target.updatedAt = new Date().toISOString();
         saveTopicNotes(slug, notes);
-        renderTopicNotes(slug);
+        renderTopicNotes(slug, false);
 
-        // Sync edit to backend if it's a server-side UUID (not a local temp ID)
         if (!noteId.startsWith('note_')) {
             try {
                 await apiFetch(`/progress/notes/${noteId}`, {
@@ -1002,55 +997,43 @@ async function saveEditedTopicNote(noteId) {
     }
 }
 
-async function deleteTopicNote(noteId) {
+function deleteTopicNote(noteId) {
     if (!currentTopicData) return;
     const slug = currentTopicData.slug;
 
-    const doDelete = async () => {
+    const doDelete = () => {
         let notes = getTopicNotes(slug);
         notes = notes.filter(n => n.id !== noteId);
         saveTopicNotes(slug, notes);
-        renderTopicNotes(slug);
+        renderTopicNotes(slug, false);
 
-        // Sync deletion to backend if it's a server-side UUID (not a local temp ID)
         if (!noteId.startsWith('note_')) {
-            try {
-                await apiFetch(`/progress/notes/${noteId}`, { method: 'DELETE' });
-            } catch (e) {
+            apiFetch(`/progress/notes/${noteId}`, { method: 'DELETE' }).catch(e => {
                 console.warn("Note deletion DB sync failed:", e);
-            }
+            });
         }
     };
 
     if (typeof Swal !== 'undefined') {
         Swal.fire({
-            title: 'Delete Personal Note?',
-            text: 'This action cannot be undone. Are you sure you want to delete this note?',
+            title: 'Are you sure you want to delete this personal note?',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
             cancelButtonColor: '#475569',
-            confirmButtonText: 'Yes, Delete Note',
+            confirmButtonText: 'Delete',
             cancelButtonText: 'Cancel',
             background: '#0f172a',
             color: '#f8fafc'
-        }).then(async (result) => {
+        }).then((result) => {
             if (result.isConfirmed) {
-                await doDelete();
-                Swal.fire({
-                    title: 'Deleted!',
-                    text: 'Your personal note has been removed.',
-                    icon: 'success',
-                    timer: 1500,
-                    showConfirmButton: false,
-                    background: '#0f172a',
-                    color: '#f8fafc'
-                });
+                doDelete();
             }
         });
     } else {
-        if (!confirm("Are you sure you want to delete this personal note?")) return;
-        await doDelete();
+        if (confirm("Are you sure you want to delete this personal note?")) {
+            doDelete();
+        }
     }
 }
 

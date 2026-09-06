@@ -161,7 +161,7 @@ async function loadDashboardData(userId) {
         }
 
         // 6. Render Module-by-Module Progress Cards (All 17 Modules)
-        const catGrid = document.getElementById('categoryProgressGrid');
+        const catGrid = document.getElementById('moduleAnalyticsList');
         if (catGrid) {
             catGrid.innerHTML = moduleAnalytics.map(m => `
                 <div class="card" onclick="window.location.href='/learn.html?topic=${m.firstTopicSlug}'" style="cursor:pointer; transition:transform 0.2s, border-color 0.2s;">
