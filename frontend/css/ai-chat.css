@@ -1,9 +1,9 @@
 /* PrepFlow AI - Collapsible AI Tutor Panel Styles */
 
 .sidebar-right-ai {
-    width: 380px;
-    min-width: 340px;
-    max-width: 420px;
+    width: 440px;
+    min-width: 360px;
+    max-width: 520px;
     background-color: var(--bg-secondary);
     border-left: 1px solid var(--border-color);
     display: flex;
@@ -107,6 +107,9 @@
     border: 1px solid var(--border-color);
     color: var(--text-primary);
     border-bottom-left-radius: 2px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* QUICK ACTION BUTTON PILLS */
@@ -263,3 +266,474 @@
 .ai-spin {
     animation: aiSpin 0.8s linear infinite;
 }
+
+/* =============================================================
+ * RICH AI CHAT TYPOGRAPHY & MATH/KATEX STYLING
+ * ============================================================= */
+.chat-bubble-ai .katex-display-wrap {
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin: 0.55rem 0;
+    padding: 0.65rem 0.85rem;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    border-radius: var(--radius-sm);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.chat-bubble-ai .katex {
+    font-size: 1.05em;
+    color: #f1f5f9;
+}
+
+.chat-bubble-ai .katex-display {
+    margin: 0.2rem 0 !important;
+}
+
+.chat-bubble-ai .formula-box {
+    margin: 0.55rem 0;
+    padding: 0.6rem 0.85rem;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-left: 3px solid #38bdf8;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.chat-bubble-ai .formula-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+}
+
+.chat-bubble-ai .formula-tag {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: #38bdf8;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+}
+
+.chat-bubble-ai .formula-math {
+    font-family: var(--font-mono);
+    font-size: 0.84rem;
+    color: #f8fafc;
+    word-break: break-word;
+    line-height: 1.5;
+}
+
+.chat-bubble-ai .math-expr {
+    background: rgba(139, 92, 246, 0.15);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    color: #c084fc;
+    padding: 0.1rem 0.38rem;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    font-weight: 600;
+    white-space: nowrap;
+    display: inline-block;
+}
+
+.chat-bubble-ai .exp-h2, 
+.chat-bubble-ai .exp-h3, 
+.chat-bubble-ai .exp-h4 {
+    margin: 0.75rem 0 0.35rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    line-height: 1.35;
+}
+
+.chat-bubble-ai .exp-h2 {
+    font-size: 1.02rem;
+    color: #ffffff;
+    font-weight: 800;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 0.3rem;
+}
+
+.chat-bubble-ai .exp-h3 {
+    font-size: 0.94rem;
+    color: #f1f5f9;
+    font-weight: 700;
+}
+
+.chat-bubble-ai .exp-h4 {
+    font-size: 0.86rem;
+    color: var(--accent-cyan);
+    font-weight: 700;
+}
+
+.chat-bubble-ai .h-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.chat-bubble-ai .exp-paragraph {
+    margin: 0 0 0.55rem 0;
+    line-height: 1.6;
+    font-size: 0.88rem;
+    color: #cbd5e1;
+}
+
+.chat-bubble-ai .exp-bold {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.chat-bubble-ai .exp-italic {
+    font-style: italic;
+    color: #93c5fd;
+}
+
+.chat-bubble-ai .inline-code {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #38bdf8;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.84em;
+}
+
+.chat-bubble-ai .exp-bullet-list,
+.chat-bubble-ai .exp-step-list {
+    margin: 0.45rem 0 0.65rem;
+    padding-left: 0;
+    list-style: none;
+}
+
+.chat-bubble-ai .exp-bullet-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    margin-bottom: 0.35rem;
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+.chat-bubble-ai .bullet-dot {
+    color: var(--accent-cyan);
+    font-size: 0.68rem;
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+
+.chat-bubble-ai .bullet-text {
+    flex: 1;
+    color: #cbd5e1;
+}
+
+.chat-bubble-ai .exp-step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.45rem;
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+.chat-bubble-ai .step-num {
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    color: #60a5fa;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.chat-bubble-ai .step-text {
+    flex: 1;
+    color: #cbd5e1;
+}
+
+.chat-bubble-ai .vscode-editor-container,
+.chat-bubble-ai .block-code-container {
+    margin: 0.65rem 0;
+    font-size: 0.8rem;
+    max-width: 100%;
+}
+
+/* Dedicated AI Chat Code Block Cards */
+.chat-bubble-ai .ai-chat-code-card {
+    margin: 0.65rem 0;
+    background: #0d1322;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.chat-bubble-ai .ai-chat-code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.35rem 0.75rem;
+    background: rgba(15, 23, 42, 0.9);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.chat-bubble-ai .ai-chat-code-lang {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--accent-cyan, #38bdf8);
+    letter-spacing: 0.06em;
+}
+
+.chat-bubble-ai .ai-chat-code-copy {
+    background: none;
+    border: none;
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.72rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.chat-bubble-ai .ai-chat-code-copy:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.chat-bubble-ai .ai-chat-code-body {
+    padding: 0.65rem 0.85rem;
+    overflow-x: auto;
+    background: #090e1a;
+    max-width: 100%;
+}
+
+.chat-bubble-ai .ai-chat-code-pre {
+    margin: 0;
+    padding: 0;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    white-space: pre;
+    word-break: normal;
+    word-wrap: normal;
+    overflow-x: auto;
+    color: #e2e8f0;
+}
+
+.chat-bubble-ai .ai-chat-code-content {
+    font-family: inherit;
+}
+
+/* Chat Tables: Full-width and horizontal scrollable */
+.chat-bubble-ai .table-responsive-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    margin: 0.65rem 0;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    -webkit-overflow-scrolling: touch;
+}
+
+.chat-bubble-ai .prepflow-styled-table {
+    width: 100%;
+    min-width: 300px;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.chat-bubble-ai .prepflow-styled-table th,
+.chat-bubble-ai .prepflow-styled-table td {
+    padding: 0.45rem 0.65rem;
+    white-space: nowrap;
+}
+
+/* Fallback: If diagram dual layout is ever rendered in chat, stack it vertically so it never squishes side-by-side */
+.chat-bubble-ai .diagram-dual-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0.75rem !important;
+    margin: 0.65rem 0 !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+}
+
+.chat-bubble-ai .diagram-visual-side,
+.chat-bubble-ai .diagram-explain-side {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+}
+
+/* ==========================================================================
+   KaTeX Math and Formula Guard in Chat Bubbles
+   Prevents vertical letter stacking and MathML duplication
+   ========================================================================== */
+.katex-mathml,
+math {
+    display: none !important;
+}
+
+.chat-bubble-ai .katex,
+.katex-inline-pill,
+.katex-inline-pill .katex {
+    white-space: nowrap !important;
+    display: inline-block !important;
+    vertical-align: middle;
+    font-size: 0.95em;
+    direction: ltr !important;
+}
+
+.chat-bubble-ai .katex .base,
+.katex-inline-pill .katex .base {
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: baseline !important;
+}
+
+.chat-bubble-ai .math-expr,
+.katex-inline-pill .math-expr {
+    white-space: nowrap !important;
+    display: inline-block;
+    vertical-align: middle;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.9em;
+    color: #38bdf8;
+}
+
+.chat-bubble-ai .katex-display-wrap {
+    margin: 0.65rem 0;
+    padding: 0.6rem 0.85rem;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: 6px;
+    overflow-x: auto;
+    text-align: center;
+}
+
+/* ==========================================================================
+   Chat Images & Chart Cards
+   ========================================================================== */
+.chat-bubble-ai .chat-img-wrap {
+    margin: 0.65rem 0;
+    text-align: center;
+}
+
+.chat-bubble-ai .chat-markdown-img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    display: block;
+    margin: 0.5rem auto;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.chat-bubble-ai .table-img {
+    max-width: 220px;
+    max-height: 120px;
+    height: auto;
+    border-radius: 6px;
+    display: block;
+    margin: 0.25rem auto;
+    background: #0b1120;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    object-fit: contain;
+}
+
+/* ==========================================================================
+   AI Chat Visual SVG Graph Containers
+   ========================================================================== */
+.chat-bubble-ai .ai-graph-container {
+    background: #090e1a;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 0.75rem 0;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.chat-bubble-ai .ai-graph-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 0.85rem;
+    background: rgba(15, 23, 42, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.chat-bubble-ai .ai-graph-tag {
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #38bdf8;
+    letter-spacing: 0.03em;
+}
+
+.chat-bubble-ai .ai-graph-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 9999px;
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.chat-bubble-ai .ai-graph-svg-wrap {
+    padding: 0.75rem 0.5rem 0.4rem 0.5rem;
+    background: radial-gradient(circle at 80% 20%, rgba(56, 189, 248, 0.07), transparent 60%), #090e1a;
+}
+
+.chat-bubble-ai .complexity-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.chat-bubble-ai .ai-graph-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0.4rem 0.85rem;
+    background: rgba(15, 23, 42, 0.85);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 0.74rem;
+    color: #94a3b8;
+}
+
+.chat-bubble-ai .ai-graph-footer strong {
+    color: #38bdf8;
+}
+
+
+

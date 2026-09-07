@@ -85,7 +85,7 @@
         // -------------------------------------------------------------
         // A. GRANULAR SPACE COMPLEXITY SINGLE-METHOD GENERATORS
         // -------------------------------------------------------------
-        const isMultiSpaceSuite = trimmed.includes('SpaceComplexityDemonstrator') || 
+        const isMultiSpaceSuite = trimmed.includes('SpaceComplexityDemonstrator') ||
             (trimmed.includes('reverse_in_place') && trimmed.includes('recursive_binary_search'));
 
         if (!isMultiSpaceSuite) {
@@ -1070,11 +1070,12 @@ ${lines}
 
         const formatCell = (cellText) => {
             let text = cellText;
+            text = PrepFlowRender.renderMarkdownImages(text, true);
             text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="table-bold">$1</strong>');
             text = text.replace(/`([^`]+)`/g, (m, c) => `<code class="inline-code">${PrepFlowRender.escapeHtml(c)}</code>`);
             text = text.replace(/✅\s*Yes/gi, '<span class="table-badge badge-yes">✅ Yes</span>');
             text = text.replace(/❌\s*No/gi, '<span class="table-badge badge-no">❌ No</span>');
-            text = text.replace(/\b(O\([^)]+\))/g, '<span class="table-complexity-pill">$1</span>');
+            text = text.replace(/(^|[\s>(])(O\([A-Za-z0-9\^_\s+\-*\/]+\))(?=[\s<).,;]|$)/g, '$1<span class="table-complexity-pill">$2</span>');
             return text;
         };
 
@@ -2057,7 +2058,7 @@ ${lines}
                 }
             } else {
                 const isCode = ['python', 'py', 'javascript', 'js', 'cpp', 'java', 'c', 'ts', 'typescript', 'go', 'rust', 'code'].includes(lang) ||
-                               /(\bdef\s+\w+|\bfunction\s+\w+|\breturn\b|\bclass\s+\w+|\bimport\s+|\bfor\s+\w+\s+in\b)/.test(rawContent);
+                    /(\bdef\s+\w+|\bfunction\s+\w+|\breturn\b|\bclass\s+\w+|\bimport\s+|\bfor\s+\w+\s+in\b)/.test(rawContent);
 
                 return PrepFlowRender.renderCodeBlock(rawContent, lang || 'python');
             }
@@ -2101,38 +2102,384 @@ ${lines}
         `;
     };
 
-    // Helper: Calculation & Formula Box
-    PrepFlowRender.renderFormulaBox = function (formulaText) {
-        const cleanFormula = formulaText
+    // Helper: Clean raw LaTeX commands into readable Unicode
+    PrepFlowRender.cleanMathSymbols = function (math) {
+        if (!math) return '';
+        let str = String(math);
+        str = str
+            .replace(/\\text\{([^}]+)\}/g, '$1')
+            .replace(/\\mathrm\{([^}]+)\}/g, '$1')
+            .replace(/\\mathbf\{([^}]+)\}/g, '$1')
+            .replace(/\\iff/g, '⟺')
+            .replace(/\\implies/g, '➔')
+            .replace(/\\rightarrow/g, '→')
+            .replace(/\\leftarrow/g, '←')
+            .replace(/\\to/g, '→')
+            .replace(/\\exists/g, '∃')
+            .replace(/\\forall/g, '∀')
+            .replace(/\\leq|\\le/g, '≤')
+            .replace(/\\geq|\\ge/g, '≥')
+            .replace(/\\neq/g, '≠')
+            .replace(/\\approx/g, '≈')
+            .replace(/\\cdot/g, '·')
+            .replace(/\\times/g, '×')
+            .replace(/\\pm/g, '±')
+            .replace(/\\in/g, '∈')
+            .replace(/\\notin/g, '∉')
+            .replace(/\\subset/g, '⊂')
+            .replace(/\\subseteq/g, '⊆')
+            .replace(/\\cup/g, '∪')
+            .replace(/\\cap/g, '∩')
+            .replace(/\\infty/g, '∞')
+            .replace(/\\Theta/g, 'Θ')
+            .replace(/\\Omega/g, 'Ω')
+            .replace(/\\log_2/g, 'log₂')
+            .replace(/\\log/g, 'log')
+            .replace(/\\sum/g, '∑')
+            .replace(/\\prod/g, '∏')
+            .replace(/\\quad|\\qquad/g, '  ')
+            .replace(/\\,|\\;|\\:/g, ' ')
+            .replace(/_0/g, '₀')
+            .replace(/_1/g, '₁')
+            .replace(/_2/g, '₂')
+            .replace(/_n/g, 'ₙ')
+            .replace(/_i/g, 'ᵢ')
+            .replace(/_k/g, 'ₖ')
+            .replace(/\^2/g, '²')
+            .replace(/\^3/g, '³')
+            .replace(/\^n/g, 'ⁿ')
+            .replace(/\^k/g, 'ᵏ')
+            .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1 / $2)')
+            .replace(/\\/g, '');
+        return str.trim();
+    };
+
+    // Helper: Display Math (KaTeX or Fallback Formula Box)
+    PrepFlowRender.renderMathDisplay = function (tex) {
+        let clean = (tex || '')
             .replace(/^For recurrence:\s*/i, '')
             .replace(/^\*\*(.*?)\*\*$/, '$1')
-            .replace(/^`|`$/g, '');
+            .replace(/^`|`$/g, '')
+            .replace(/^\\\[|\\\]$/g, '')
+            .replace(/^\$\$|\$\$$/g, '')
+            .trim();
 
+        if (!clean) return '';
+
+        clean = clean.replace(/\|(text|forall|exists|ge|le|geq|leq|iff|implies|in|times|cdot|log)\b/g, '\\$1');
+
+        if (typeof window !== 'undefined' && window.katex && typeof window.katex.renderToString === 'function') {
+            try {
+                const rendered = window.katex.renderToString(clean, {
+                    displayMode: true,
+                    output: 'html',
+                    throwOnError: false
+                });
+                return `
+                    <div class="katex-display-wrap">
+                        ${rendered}
+                    </div>
+                `;
+            } catch (e) {
+                // fall through to fallback
+            }
+        }
+
+        const fallback = PrepFlowRender.cleanMathSymbols(clean);
         return `
             <div class="formula-box">
                 <div class="formula-header">
                     <span class="formula-tag">📐 KEY FORMULA / CALCULATION</span>
                 </div>
-                <div class="formula-math">${cleanFormula}</div>
+                <div class="formula-math">${PrepFlowRender.escapeHtml(fallback)}</div>
             </div>
         `;
+    };
+
+    // Helper: Inline Math (KaTeX or Fallback Math Badge)
+    PrepFlowRender.renderMathInline = function (tex) {
+        let clean = (tex || '')
+            .replace(/^\\\(|\\\)$/g, '')
+            .replace(/^\$|\$$/g, '')
+            .trim();
+
+        if (!clean) return '';
+
+        clean = clean.replace(/\|(text|forall|exists|ge|le|geq|leq|iff|implies|in|times|cdot|log)\b/g, '\\$1');
+
+        if (typeof window !== 'undefined' && window.katex && typeof window.katex.renderToString === 'function') {
+            try {
+                const rendered = window.katex.renderToString(clean, {
+                    displayMode: false,
+                    output: 'html',
+                    throwOnError: false
+                });
+                return `<span class="katex-inline-pill">${rendered}</span>`;
+            } catch (e) {
+                // fall through to fallback
+            }
+        }
+
+        const formatted = PrepFlowRender.cleanMathSymbols(clean);
+        return `<span class="katex-inline-pill"><span class="math-expr">${PrepFlowRender.escapeHtml(formatted)}</span></span>`;
+    };
+
+    // Helper: Render Markdown Images (![alt](url)) cleanly in tables and chat
+    PrepFlowRender.renderMarkdownImages = function (text, isTable = false) {
+        if (!text || !text.includes('![')) return text;
+        return text.replace(/!\[([^\]]*)\]\(((?:https?:\/\/|\/|\.)[^\r\n]+?)\)(?=[,\s|)}\]]|$)/g, (match, alt, url) => {
+            const safeAlt = PrepFlowRender.escapeHtml(alt || 'chart');
+            let safeUrl = url.trim();
+            try {
+                safeUrl = encodeURI(safeUrl).replace(/"/g, '&quot;');
+            } catch (e) {
+                safeUrl = PrepFlowRender.escapeHtml(safeUrl);
+            }
+            const imgClass = isTable ? "table-img" : "chat-markdown-img";
+            return `<img src="${safeUrl}" alt="${safeAlt}" class="${imgClass}" loading="lazy" />`;
+        });
+    };
+
+    // Backward-compatible alias
+    PrepFlowRender.renderFormulaBox = function (formulaText) {
+        return PrepFlowRender.renderMathDisplay(formulaText);
     };
 
     // =========================================================================
     // 5. MASTER MARKDOWN & CONTENT RENDERER
     // =========================================================================
-    PrepFlowRender.renderRichMarkdown = function (rawMarkdown) {
+    PrepFlowRender.detectGraphType = function (code, lang = '', context = '') {
+        const combined = ((lang || '') + ' ' + (code || '') + ' ' + (context || '')).toLowerCase();
+        if (combined.includes('graph:o(1)') || (combined.includes('o(1)') && !combined.includes('o(n)'))) return 'constant';
+        if (combined.includes('graph:o(log') || combined.includes('o(log n)') || combined.includes('logarithmic')) return 'logarithmic';
+        if (combined.includes('graph:o(n^2)') || combined.includes('o(n^2)') || combined.includes('quadratic') || combined.includes('o(n²)')) return 'quadratic';
+        if (combined.includes('graph:o(n log n)') || combined.includes('o(n log n)') || combined.includes('o(nlogn)') || combined.includes('linearithmic')) return 'linearithmic';
+        if (combined.includes('graph:o(2^n)') || combined.includes('exponential')) return 'exponential';
+        if (combined.includes('comparison') || combined.includes('all curves') || combined.includes('asymptotic notations')) return 'comparison';
+        if (combined.includes('o(n)') || combined.includes('linear') || combined.includes('linear search')) return 'linear';
+        return 'linear';
+    };
+
+    PrepFlowRender.renderAIChatGraphBlock = function (code, lang = '', context = '') {
+        const type = PrepFlowRender.detectGraphType(code, lang, context);
+        let curveSvg = '';
+        let curveTag = '';
+        let footerSlope = '';
+        let footerInvariant = '';
+
+        if (type === 'constant') {
+            curveTag = 'O(1) Constant Time';
+            footerSlope = 'Slope: Zero (Flat Horizontal Line)';
+            footerInvariant = 'Invariant: Fixed 1 operation for any N';
+            curveSvg = `
+                <polygon points="45,150 315,120 315,150" fill="rgba(16,185,129,0.12)" />
+                <line x1="45" y1="120" x2="315" y2="120" stroke="#10b981" stroke-width="3" stroke-linecap="round" />
+                <circle cx="100" cy="120" r="3.5" fill="#10b981" stroke="#090e1a" stroke-width="1.5" />
+                <circle cx="190" cy="120" r="3.5" fill="#10b981" stroke="#090e1a" stroke-width="1.5" />
+                <circle cx="280" cy="120" r="3.5" fill="#10b981" stroke="#090e1a" stroke-width="1.5" />
+                <text x="315" y="112" fill="#34d399" font-size="9.5" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="end">O(1)</text>
+            `;
+        } else if (type === 'logarithmic') {
+            curveTag = 'O(log n) Logarithmic Growth';
+            footerSlope = 'Slope: Sub-Linear (Flattens Out)';
+            footerInvariant = 'Invariant: Double N ➔ Only +1 Extra Operation';
+            curveSvg = `
+                <path d="M 45 150 Q 80 95, 160 80 T 315 65" fill="none" stroke="#06b6d4" stroke-width="3" stroke-linecap="round" />
+                <circle cx="70" cy="115" r="3.5" fill="#06b6d4" stroke="#090e1a" stroke-width="1.5" />
+                <circle cx="130" cy="87" r="3.5" fill="#06b6d4" stroke="#090e1a" stroke-width="1.5" />
+                <circle cx="220" cy="74" r="3.5" fill="#06b6d4" stroke="#090e1a" stroke-width="1.5" />
+                <circle cx="315" cy="65" r="4.5" fill="#06b6d4" stroke="#ffffff" stroke-width="1.5" />
+                <text x="315" y="55" fill="#22d3ee" font-size="9.5" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="end">O(log n)</text>
+            `;
+        } else if (type === 'quadratic') {
+            curveTag = 'O(n²) Quadratic Growth';
+            footerSlope = 'Slope: Accelerates Upward (Parabolic)';
+            footerInvariant = 'Invariant: Double N ➔ 4x More Operations';
+            curveSvg = `
+                <path d="M 45 150 Q 140 145, 230 25" fill="none" stroke="#f43f5e" stroke-width="3" stroke-linecap="round" />
+                <circle cx="110" cy="144" r="3.5" fill="#f43f5e" stroke="#090e1a" stroke-width="1.5" />
+                <circle cx="160" cy="120" r="3.5" fill="#f43f5e" stroke="#090e1a" stroke-width="1.5" />
+                <circle cx="200" cy="75" r="3.5" fill="#f43f5e" stroke="#090e1a" stroke-width="1.5" />
+                <circle cx="230" cy="25" r="4.5" fill="#f43f5e" stroke="#ffffff" stroke-width="1.5" />
+                <text x="238" y="24" fill="#fb7185" font-size="9.5" font-family="'JetBrains Mono', monospace" font-weight="700">O(n²)</text>
+            `;
+        } else if (type === 'linearithmic') {
+            curveTag = 'O(n log n) Linearithmic Growth';
+            footerSlope = 'Slope: Slightly Steeper than Linear';
+            footerInvariant = 'Invariant: Optimal for General Comparison Sorting';
+            curveSvg = `
+                <path d="M 45 150 Q 170 110, 310 25" fill="none" stroke="#a855f7" stroke-width="3" stroke-linecap="round" />
+                <circle cx="110" cy="132" r="3.5" fill="#a855f7" stroke="#090e1a" stroke-width="1.5" />
+                <circle cx="180" cy="102" r="3.5" fill="#a855f7" stroke="#090e1a" stroke-width="1.5" />
+                <circle cx="250" cy="63" r="3.5" fill="#a855f7" stroke="#090e1a" stroke-width="1.5" />
+                <circle cx="310" cy="25" r="4.5" fill="#a855f7" stroke="#ffffff" stroke-width="1.5" />
+                <text x="312" y="20" fill="#c084fc" font-size="9.5" font-family="'JetBrains Mono', monospace" font-weight="700">O(n log n)</text>
+            `;
+        } else if (type === 'comparison') {
+            curveTag = 'Asymptotic Growth Comparison';
+            footerSlope = 'Order: O(1) < O(log n) < O(n) < O(n log n) < O(n²)';
+            footerInvariant = 'Best to Worst: Green ➔ Cyan ➔ Blue ➔ Purple ➔ Red';
+            curveSvg = `
+                <line x1="45" y1="135" x2="315" y2="135" stroke="#10b981" stroke-width="2.5" />
+                <text x="315" y="130" fill="#34d399" font-size="8.5" font-family="monospace">O(1)</text>
+                <path d="M 45 150 Q 80 115, 160 108 T 315 100" fill="none" stroke="#06b6d4" stroke-width="2.5" />
+                <text x="315" y="96" fill="#22d3ee" font-size="8.5" font-family="monospace">O(log n)</text>
+                <line x1="45" y1="150" x2="300" y2="60" stroke="#38bdf8" stroke-width="2.5" />
+                <text x="302" y="58" fill="#38bdf8" font-size="8.5" font-family="monospace">O(n)</text>
+                <path d="M 45 150 Q 160 115, 270 30" fill="none" stroke="#a855f7" stroke-width="2.5" />
+                <text x="272" y="28" fill="#c084fc" font-size="8.5" font-family="monospace">O(n log n)</text>
+                <path d="M 45 150 Q 110 145, 185 20" fill="none" stroke="#f43f5e" stroke-width="2.5" />
+                <text x="187" y="18" fill="#fb7185" font-size="8.5" font-family="monospace">O(n²)</text>
+            `;
+        } else {
+            // Default: O(n) Linear
+            curveTag = 'O(n) Linear Growth';
+            footerSlope = 'Slope: Constant 1:1 Proportional Line';
+            footerInvariant = 'Invariant: Double N ➔ Double the Operations';
+            curveSvg = `
+                <polygon points="45,150 310,35 310,150" fill="url(#areaGradBlue)" />
+                <line x1="45" y1="150" x2="310" y2="35" stroke="url(#lineGradBlue)" stroke-width="3" stroke-linecap="round" />
+                <circle cx="111" cy="121" r="3.5" fill="#38bdf8" stroke="#090e1a" stroke-width="1.5" />
+                <circle cx="177" cy="92" r="3.5" fill="#60a5fa" stroke="#090e1a" stroke-width="1.5" />
+                <circle cx="243" cy="64" r="3.5" fill="#818cf8" stroke="#090e1a" stroke-width="1.5" />
+                <circle cx="310" cy="35" r="4.5" fill="#a855f7" stroke="#ffffff" stroke-width="1.5" />
+                <text x="312" y="28" fill="#c084fc" font-size="9.5" font-family="'JetBrains Mono', monospace" font-weight="700">O(n)</text>
+                <text x="180" y="84" fill="#93c5fd" font-size="8.5" font-family="'JetBrains Mono', monospace">T = c · n</text>
+            `;
+        }
+
+        const safeAscii = PrepFlowRender.escapeHtml(code || '');
+
+        return `
+            <div class="ai-graph-container">
+                <div class="ai-graph-header">
+                    <span class="ai-graph-tag">📈 TIME COMPLEXITY: ${curveTag}</span>
+                    <span class="ai-graph-badge">SVG Chart</span>
+                </div>
+                <div class="ai-graph-svg-wrap">
+                    <svg viewBox="0 0 340 180" class="complexity-svg">
+                        <defs>
+                            <linearGradient id="lineGradBlue" x1="0%" y1="100%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#38bdf8" />
+                                <stop offset="100%" stop-color="#818cf8" />
+                            </linearGradient>
+                            <linearGradient id="areaGradBlue" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="rgba(56, 189, 248, 0.22)" />
+                                <stop offset="100%" stop-color="rgba(56, 189, 248, 0.01)" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Subtle Grid -->
+                        <line x1="45" y1="120" x2="320" y2="120" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
+                        <line x1="45" y1="80" x2="320" y2="80" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
+                        <line x1="45" y1="40" x2="320" y2="40" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
+                        <line x1="135" y1="20" x2="135" y2="150" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
+                        <line x1="225" y1="20" x2="225" y2="150" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
+
+                        <!-- Axes -->
+                        <line x1="45" y1="150" x2="45" y2="15" stroke="#64748b" stroke-width="1.8" />
+                        <polygon points="45,10 41,18 49,18" fill="#94a3b8" />
+                        <text x="35" y="16" fill="#94a3b8" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="end">Time</text>
+                        <text x="35" y="27" fill="#64748b" font-size="7.5" font-family="'JetBrains Mono', monospace" text-anchor="end">T(n)</text>
+
+                        <line x1="45" y1="150" x2="325" y2="150" stroke="#64748b" stroke-width="1.8" />
+                        <polygon points="330,150 322,146 322,154" fill="#94a3b8" />
+                        <text x="325" y="166" fill="#94a3b8" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="700" text-anchor="end">Input Size (n)</text>
+
+                        <text x="40" y="162" fill="#64748b" font-size="8" font-family="monospace">0</text>
+
+                        <!-- Curve -->
+                        ${curveSvg}
+                    </svg>
+                </div>
+                <div class="ai-graph-footer">
+                    <span>${footerSlope}</span>
+                    <span><strong>${footerInvariant}</strong></span>
+                </div>
+            </div>
+        `;
+    };
+
+    PrepFlowRender.renderAIChatCodeBlock = function (code, lang = '') {
+        if (!code) return '';
+        const trimmed = String(code).trim();
+        let detectedLang = (lang || '').toLowerCase();
+        if (!detectedLang) {
+            if (/(\bdef\s+\w+|\bimport\s+\w+|print\(|:\s*$)/m.test(trimmed)) detectedLang = 'python';
+            else if (/(\bpublic\s+class|\bvoid\s+main|System\.out)/m.test(trimmed)) detectedLang = 'java';
+            else if (/(\bfunction\s+\w+|\bconst\s+\w+\s*=|\bconsole\.log)/m.test(trimmed)) detectedLang = 'javascript';
+            else detectedLang = 'code';
+        }
+
+        const highlighted = PrepFlowRender.highlightSyntax(trimmed, detectedLang);
+        const displayLang = (lang || detectedLang || 'CODE').toUpperCase();
+
+        return `
+            <div class="ai-chat-code-card">
+                <div class="ai-chat-code-header">
+                    <span class="ai-chat-code-lang">${PrepFlowRender.escapeHtml(displayLang)}</span>
+                    <button type="button" class="ai-chat-code-copy" onclick="PrepFlowRender.copyToClipboard(this)" title="Copy Code">📋 Copy</button>
+                </div>
+                <div class="ai-chat-code-body">
+                    <pre class="ai-chat-code-pre"><code class="ai-chat-code-content">${highlighted}</code></pre>
+                </div>
+            </div>
+        `;
+    };
+
+    PrepFlowRender.copyToClipboard = function (btn) {
+        try {
+            const card = btn.closest('.ai-chat-code-card, .vscode-editor-container');
+            const codeEl = card ? (card.querySelector('.ai-chat-code-content') || card.querySelector('code')) : null;
+            if (codeEl) {
+                const text = codeEl.innerText || codeEl.textContent;
+                navigator.clipboard.writeText(text);
+                const orig = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                setTimeout(() => { btn.innerHTML = orig; }, 1500);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    PrepFlowRender.renderRichMarkdown = function (rawMarkdown, isChat = false) {
         if (!rawMarkdown) return '';
 
         const codeBlocks = [];
+        const displayMathBlocks = [];
+        const inlineMathBlocks = [];
 
-        // Step 1: Detect and route all diagrams & code blocks through renderVisualCard
-        let text = rawMarkdown.replace(/```([a-zA-Z0-9_:-]*)\s*([\s\S]*?)```/g, (match, langHeader, code) => {
+        // Step 0: Pre-clean weird pipe artifacts in LaTeX
+        let text = rawMarkdown
+            .replace(/\r\n/g, '\n')
+            .replace(/\|(text|forall|exists|ge|le|geq|leq|iff|implies|in|times|cdot|log)\b/g, '\\$1');
+
+        // Step 1: Detect and isolate all diagrams & code blocks
+        text = text.replace(/```([a-zA-Z0-9_:-]*)\s*([\s\S]*?)```/g, (match, langHeader, code) => {
             const index = codeBlocks.length;
             const trimmed = code.replace(/^\n+|\n+$/g, '');
             const lang = (langHeader || '').trim().toLowerCase();
 
-            // Check explicit diagram marker (e.g. ```diagram:recursion-types```)
+            // In AI Chat, check if this block is a GRAPH / VISUAL DIAGRAM
+            if (isChat) {
+                const isExplicitGraph = ['graph', 'chart', 'plot', 'ascii-graph', 'diagram'].includes(lang) || lang.startsWith('graph:') || lang.startsWith('diagram:');
+
+                // Or detect ASCII graphs/curves
+                const hasAxes = /\|[\s\S]*?[_\-]{3,}/.test(trimmed);
+                const hasGraphLabels = /(input size|\bTime\b|T\s*\n\s*i\s*\n\s*m\s*\n\s*e|\boperations\b|\bworst[- ]case\b|\bcurve\b|\blinear\b|\bconstant\b)/i.test(trimmed);
+                const hasPlotSymbols = /[\*•#▲■x×]/.test(trimmed);
+                const isAsciiGraph = hasAxes && (hasGraphLabels || hasPlotSymbols);
+
+                if (isExplicitGraph || isAsciiGraph) {
+                    codeBlocks.push(PrepFlowRender.renderAIChatGraphBlock(trimmed, lang, rawMarkdown));
+                    return `\n\n@@@CODEBLOCK_${index}@@@\n\n`;
+                }
+
+                codeBlocks.push(PrepFlowRender.renderAIChatCodeBlock(trimmed, lang));
+                return `\n\n@@@CODEBLOCK_${index}@@@\n\n`;
+            }
+
             if (lang.startsWith('diagram:')) {
                 const key = lang.replace('diagram:', '').trim();
                 codeBlocks.push(PrepFlowRender.renderVisualCard(key));
@@ -2166,7 +2513,21 @@ ${lines}
             return `\n\n@@@CODEBLOCK_${index}@@@\n\n`;
         });
 
-        // Step 2: Line-by-line parsing for tables, headings, formulas, lists
+        // Step 2: Extract Display Math blocks ($$...$$ and \[...\])
+        text = text.replace(/(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\])/g, (match) => {
+            const index = displayMathBlocks.length;
+            displayMathBlocks.push(match);
+            return `\n\n@@@MATH_DISPLAY_${index}@@@\n\n`;
+        });
+
+        // Step 3: Extract Inline Math blocks (\(...\) and $...$)
+        text = text.replace(/(\\\([\s\S]*?\\\)|(?:\$([^\$\n\r]+?)\$))/g, (match) => {
+            const index = inlineMathBlocks.length;
+            inlineMathBlocks.push(match);
+            return `@@@MATH_INLINE_${index}@@@`;
+        });
+
+        // Step 4: Line-by-line parsing for tables, headings, formulas, lists
         const lines = text.split('\n');
         const processedBlocks = [];
         let inList = false;
@@ -2204,7 +2565,7 @@ ${lines}
                 continue;
             }
 
-            if (/^@@@CODEBLOCK_\d+@@@$/.test(line)) {
+            if (/^@@@CODEBLOCK_\d+@@@$/.test(line) || /^@@@MATH_DISPLAY_\d+@@@$/.test(line)) {
                 flushList();
                 processedBlocks.push(line);
                 continue;
@@ -2223,13 +2584,7 @@ ${lines}
                 continue;
             }
 
-            if (/^\$\$(.*?)\$\$$/.test(line)) {
-                flushList();
-                const formulaMath = line.replace(/^\$\$\s*|\s*\$\$$/g, '');
-                processedBlocks.push(PrepFlowRender.renderFormulaBox(formulaMath));
-                continue;
-            }
-
+            // Standard Markdown Headings
             if (line.startsWith('#### ')) {
                 flushList();
                 const title = line.replace(/^####\s+/, '');
@@ -2251,6 +2606,29 @@ ${lines}
                 continue;
             }
 
+            if (line.startsWith('# ')) {
+                flushList();
+                const title = line.replace(/^#\s+/, '');
+                processedBlocks.push(`<h2 class="exp-h2">${title}</h2>`);
+                continue;
+            }
+
+            // Keycap Number Badge Headings e.g. 2️⃣ Formal Definition
+            const keycapMatch = line.match(/^([0-9]|10)️⃣\s*(.*)/);
+            if (keycapMatch) {
+                flushList();
+                processedBlocks.push(`<h2 class="exp-h2"><span class="h-badge">${keycapMatch[1]}</span> ${keycapMatch[2]}</h2>`);
+                continue;
+            }
+
+            // Sub-headings like 2.1 Set-Notation Form or **2.1 Set-Notation Form**
+            const subHeadingMatch = line.match(/^(?:\*\*)?(\d+\.\d+(?:\.\d+)?\s+[A-Za-z0-9\s\-–—:]+)(?:\*\*)?$/);
+            if (subHeadingMatch && !line.endsWith('.')) {
+                flushList();
+                processedBlocks.push(`<h4 class="exp-h4">${subHeadingMatch[1]}</h4>`);
+                continue;
+            }
+
             const isFormulaLine = (
                 /^\*\*Total Space\s*=/i.test(line) ||
                 /^\*\*Time Complexity\s*=/i.test(line) ||
@@ -2265,11 +2643,11 @@ ${lines}
 
             if (isFormulaLine) {
                 flushList();
-                processedBlocks.push(PrepFlowRender.renderFormulaBox(line));
+                processedBlocks.push(PrepFlowRender.renderMathDisplay(line));
                 continue;
             }
 
-            const olMatch = line.match(/^(\d+)\.\s+(.*)/);
+            const olMatch = line.match(/^(\d+)[\.\)]\s+(.*)/);
             if (olMatch) {
                 if (!inList || listType !== 'ol') {
                     flushList();
@@ -2281,7 +2659,7 @@ ${lines}
                 continue;
             }
 
-            const ulMatch = line.match(/^[-*]\s+(.*)/);
+            const ulMatch = line.match(/^[-*•✦]\s+(.*)/);
             if (ulMatch) {
                 if (!inList || listType !== 'ul') {
                     flushList();
@@ -2302,36 +2680,32 @@ ${lines}
 
         let parsedHtml = processedBlocks.join('\n');
 
-        // Block formulas $$...$$
-        parsedHtml = parsedHtml.replace(/\$\$(.*?)\$\$/g, (m, f) => {
-            return PrepFlowRender.renderFormulaBox(f.trim());
-        });
-
-        // Inline Math $...$ -> clean math expression
-        parsedHtml = parsedHtml.replace(/\$([^\$\n]+)\$/g, (m, math) => {
-            let clean = math.replace(/\\text\{([^}]+)\}/g, '$1')
-                            .replace(/\\implies/g, '➔')
-                            .replace(/\\rightarrow/g, '➔')
-                            .replace(/\\leq/g, '<=')
-                            .replace(/\\geq/g, '>=')
-                            .replace(/\\log_2/g, 'log₂')
-                            .replace(/\\times/g, '×');
-            return `<span class="math-expr">${PrepFlowRender.escapeHtml(clean.trim())}</span>`;
-        });
-
+        // Step 5: Inline markdown styling (bold, italic, inline code)
         // Bold-Italic ***...***
         parsedHtml = parsedHtml.replace(/\*\*\*(.*?)\*\*\*/g, '<strong class="exp-bold"><em class="exp-italic">$1</em></strong>');
 
         // Bold **...**
         parsedHtml = parsedHtml.replace(/\*\*(.*?)\*\*/g, '<strong class="exp-bold">$1</strong>');
 
-        // Italic *...* or _..._
+        // Italic *...* or _..._ (only word-boundary underscores so snake_case isn't corrupted)
         parsedHtml = parsedHtml.replace(/\*([^*\n\t]+)\*/g, '<em class="exp-italic">$1</em>');
-        parsedHtml = parsedHtml.replace(/_([^_\n\t]+)_/g, '<em class="exp-italic">$1</em>');
+        parsedHtml = parsedHtml.replace(/(?<!\w)_([^_]+)_(?!\w)/g, '<em class="exp-italic">$1</em>');
 
         // Inline code `...`
         parsedHtml = parsedHtml.replace(/`([^`]+)`/g, (match, inlineCode) => {
             return `<code class="inline-code">${PrepFlowRender.escapeHtml(inlineCode)}</code>`;
+        });
+
+        // Markdown images: ![alt](url)
+        parsedHtml = PrepFlowRender.renderMarkdownImages(parsedHtml, false);
+
+        // Step 6: Restore all extracted tokens in reverse order
+        inlineMathBlocks.forEach((math, idx) => {
+            parsedHtml = parsedHtml.replace(`@@@MATH_INLINE_${idx}@@@`, PrepFlowRender.renderMathInline(math));
+        });
+
+        displayMathBlocks.forEach((math, idx) => {
+            parsedHtml = parsedHtml.replace(`@@@MATH_DISPLAY_${idx}@@@`, PrepFlowRender.renderMathDisplay(math));
         });
 
         codeBlocks.forEach((block, idx) => {
@@ -2344,7 +2718,7 @@ ${lines}
     // AI Message Formatter
     PrepFlowRender.formatAIMessage = function (rawText) {
         if (!rawText) return '';
-        return PrepFlowRender.renderRichMarkdown(rawText);
+        return PrepFlowRender.renderRichMarkdown(rawText, true);
     };
 
     if (typeof module !== 'undefined' && module.exports) {

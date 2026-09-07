@@ -1,16 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Learning Hub - PrepFlow AI</title>
     <link rel="stylesheet" href="/static/css/main.css?v=2.4">
-    <link rel="stylesheet" href="/static/css/learning.css?v=4.6">
-    <link rel="stylesheet" href="/static/css/ai-chat.css?v=3.1">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/learning.css?v=4.7">
+    <link rel="stylesheet" href="/static/css/ai-chat.css?v=3.5">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+        rel="stylesheet">
+    <!-- KaTeX for Scientific & Math Notation Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <script>mermaid.initialize({ startOnLoad: true, theme: 'dark' });</script>
 </head>
+
 <body>
     <div id="header-container"></div>
 
@@ -24,16 +31,13 @@
         <aside class="sidebar-left" id="learningSidebar">
             <div class="sidebar-header">
                 <h3>📚 Learning Roadmap</h3>
-                <button class="btn btn-sm btn-secondary sidebar-close-btn" onclick="toggleSidebar()" id="sidebarCloseBtn" title="Hide Sidebar">✕</button>
+                <button class="btn btn-sm btn-secondary sidebar-close-btn" onclick="toggleSidebar()"
+                    id="sidebarCloseBtn" title="Hide Sidebar">✕</button>
             </div>
             <div class="sidebar-search-container">
-                <input type="text" 
-                       id="sidebarSearchInput" 
-                       class="sidebar-search-input" 
-                       placeholder="🔍 Filter roadmap topics..." 
-                       oninput="filterSidebarTopics(this.value)"
-                       autocomplete="off"
-                       spellcheck="false">
+                <input type="text" id="sidebarSearchInput" class="sidebar-search-input"
+                    placeholder="🔍 Filter roadmap topics..." oninput="filterSidebarTopics(this.value)"
+                    autocomplete="off" spellcheck="false">
             </div>
             <div id="sidebarAccordion"></div>
         </aside>
@@ -45,10 +49,14 @@
                 <div class="topic-title-row">
                     <h1 class="topic-main-title" id="topicTitle">Binary Search & Search Space</h1>
                     <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
-                        <button onclick="speakCurrentTopic()" id="voiceHeaderBtn" class="btn btn-sm btn-outline" title="Listen to audio overview of this lesson">🎧 Listen</button>
-                        <button onclick="scrollToNotesSection()" class="btn btn-sm btn-outline" title="View & Add Personal Notes for this topic">📝 Notes</button>
-                        <button onclick="toggleCompleteCurrentTopic()" id="completeBtn" class="btn btn-sm btn-outline">⚪ Mark Complete</button>
-                        <button onclick="toggleBookmarkCurrentTopic()" id="bookmarkBtn" class="btn btn-sm btn-outline">☆ Bookmark</button>
+                        <button onclick="speakCurrentTopic()" id="voiceHeaderBtn" class="btn btn-sm btn-outline"
+                            title="Listen to audio overview of this lesson">🎧 Listen</button>
+                        <button onclick="scrollToNotesSection()" class="btn btn-sm btn-outline"
+                            title="View & Add Personal Notes for this topic">📝 Notes</button>
+                        <button onclick="toggleCompleteCurrentTopic()" id="completeBtn" class="btn btn-sm btn-outline">⚪
+                            Mark Complete</button>
+                        <button onclick="toggleBookmarkCurrentTopic()" id="bookmarkBtn" class="btn btn-sm btn-outline">☆
+                            Bookmark</button>
                         <button onclick="toggleAIChat()" class="btn btn-sm btn-primary">🤖 Ask AI</button>
                     </div>
                 </div>
@@ -62,23 +70,33 @@
 
             <!-- TOPIC PERSONAL NOTES SECTION -->
             <div class="topic-notes-section" id="topicNotesSection">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
-                    <h3 style="font-size:1.3rem; font-weight:800; display:flex; align-items:center; gap:0.5rem; margin:0;">
+                <div
+                    style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+                    <h3
+                        style="font-size:1.3rem; font-weight:800; display:flex; align-items:center; gap:0.5rem; margin:0;">
                         <span>📝</span>
                         <span>My Personal Notes for this Topic</span>
                     </h3>
                     <div style="display:flex; align-items:center; gap:0.75rem;">
-                        <span style="font-size:0.8rem; color:var(--text-muted);" id="notesCountBadge">0 Notes Saved</span>
-                        <button onclick="refreshCurrentTopicNotes()" class="btn btn-sm btn-outline" id="refreshNotesBtn" title="Sync notes with DB" style="display:flex; align-items:center; gap:0.35rem;">
-                            <svg id="refreshNotesSpinner" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 0-10.57L2.1 5"/><path d="M2.5 22v-6h6"/></svg>
+                        <span style="font-size:0.8rem; color:var(--text-muted);" id="notesCountBadge">0 Notes
+                            Saved</span>
+                        <button onclick="refreshCurrentTopicNotes()" class="btn btn-sm btn-outline" id="refreshNotesBtn"
+                            title="Sync notes with DB" style="display:flex; align-items:center; gap:0.35rem;">
+                            <svg id="refreshNotesSpinner" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 0-10.57L2.1 5" />
+                                <path d="M2.5 22v-6h6" />
+                            </svg>
                             <span>Sync DB</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- ADD NOTE INPUT FORM -->
-                <div class="card" style="margin-bottom:1.25rem; background:rgba(15, 23, 42, 0.5); border-color:var(--border-color);">
-                    <textarea id="newNoteInput" rows="3" class="note-textarea" placeholder="Type your personal key insights, code snippets, or revision notes for this topic..."></textarea>
+                <div class="card"
+                    style="margin-bottom:1.25rem; background:rgba(15, 23, 42, 0.5); border-color:var(--border-color);">
+                    <textarea id="newNoteInput" rows="3" class="note-textarea"
+                        placeholder="Type your personal key insights, code snippets, or revision notes for this topic..."></textarea>
                     <div style="display:flex; justify-content:flex-end; margin-top:0.75rem;">
                         <button onclick="addTopicNote()" class="btn btn-sm btn-primary">➕ Add Personal Note</button>
                     </div>
@@ -90,13 +108,21 @@
 
             <!-- TOPIC LEETCODE PRACTICE PROBLEMS SECTION -->
             <div class="topic-practice-section">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
-                    <h3 style="font-size:1.3rem; font-weight:800; display:flex; align-items:center; gap:0.5rem; margin:0;">
+                <div
+                    style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+                    <h3
+                        style="font-size:1.3rem; font-weight:800; display:flex; align-items:center; gap:0.5rem; margin:0;">
                         <span>💻</span>
                         <span>LeetCode Practice Problems for this Topic</span>
                     </h3>
-                    <button onclick="refreshPracticeQuestionsSync()" class="btn btn-sm btn-outline" id="refreshPracticeBtn" title="Sync solved questions with DB" style="display:flex; align-items:center; gap:0.35rem;">
-                        <svg id="refreshPracticeSpinner" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 0-10.57L2.1 5"/><path d="M2.5 22v-6h6"/></svg>
+                    <button onclick="refreshPracticeQuestionsSync()" class="btn btn-sm btn-outline"
+                        id="refreshPracticeBtn" title="Sync solved questions with DB"
+                        style="display:flex; align-items:center; gap:0.35rem;">
+                        <svg id="refreshPracticeSpinner" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.5 2v6h-6M2.13 15.57a10 10 0 1 0 0-10.57L2.1 5" />
+                            <path d="M2.5 22v-6h6" />
+                        </svg>
                         <span>Sync DB</span>
                     </button>
                 </div>
@@ -111,11 +137,13 @@
                     <span>AI</span>
                 </div>
                 <div style="display:flex; align-items:center; gap:0.5rem;">
-                    <button onclick="toggleAPIKeySettings()" id="aiKeyStatusBtn" class="ai-key-badge-btn missing" title="Configure your Groq API Key">
+                    <button onclick="toggleAPIKeySettings()" id="aiKeyStatusBtn" class="ai-key-badge-btn missing"
+                        title="Configure your Groq API Key">
                         <span id="aiKeyStatusDot" class="ai-status-dot"></span>
                         <span id="aiKeyStatusText">Add Groq Key</span>
                     </button>
-                    <button onclick="toggleAIChat(false)" class="btn btn-sm btn-secondary" title="Close AI Panel">✕</button>
+                    <button onclick="toggleAIChat(false)" class="btn btn-sm btn-secondary"
+                        title="Close AI Panel">✕</button>
                 </div>
             </div>
 
@@ -123,52 +151,58 @@
             <div id="aiApiKeyDrawer" class="ai-api-key-drawer" style="display:none;">
                 <div class="ai-key-drawer-header">
                     <span style="font-weight:700; font-size:0.85rem; color:var(--text-primary);">Groq API Key</span>
-                    <button onclick="toggleAPIKeySettings(false)" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem;">✕</button>
+                    <button onclick="toggleAPIKeySettings(false)"
+                        style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.9rem;">✕</button>
                 </div>
                 <p style="font-size:0.75rem; color:var(--text-secondary); margin:0.35rem 0 0.65rem 0; line-height:1.4;">
                     Key is verified live with Groq servers before saving. Stored securely only in your browser.
                 </p>
                 <div style="display:flex; gap:0.4rem; margin-bottom:0.5rem;">
                     <div style="position:relative; flex:1; display:flex; align-items:center;">
-                        <input type="password" 
-                               id="userGroqKeyInput" 
-                               class="ai-key-input" 
-                               placeholder="Paste gsk_... key" 
-                               autocomplete="off" 
-                               spellcheck="false"
-                               style="padding-right:2rem; width:100%;"
-                               oninput="handleGroqKeyInput()"
-                               onkeydown="if(event.key==='Enter') saveUserGroqKey()">
-                        <button type="button" onclick="toggleKeyVisibility()" id="toggleKeyVisBtn" title="Show/Hide Key" style="position:absolute; right:6px; background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px 6px; display:inline-flex; align-items:center;">
-                            <svg id="eyeSvgIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <input type="password" id="userGroqKeyInput" class="ai-key-input"
+                            placeholder="Paste gsk_... key" autocomplete="off" spellcheck="false"
+                            style="padding-right:2rem; width:100%;" oninput="handleGroqKeyInput()"
+                            onkeydown="if(event.key==='Enter') saveUserGroqKey()">
+                        <button type="button" onclick="toggleKeyVisibility()" id="toggleKeyVisBtn" title="Show/Hide Key"
+                            style="position:absolute; right:6px; background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px 6px; display:inline-flex; align-items:center;">
+                            <svg id="eyeSvgIcon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                 <circle cx="12" cy="12" r="3"></circle>
                             </svg>
                         </button>
                     </div>
-                    <button id="saveGroqKeyBtn" onclick="saveUserGroqKey()" class="btn btn-sm btn-primary" style="font-size:0.78rem; padding:0.35rem 0.75rem; white-space:nowrap; display:inline-flex; align-items:center; gap:0.35rem;">
-                        <svg id="saveGroqKeySpinner" class="ai-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:none;">
+                    <button id="saveGroqKeyBtn" onclick="saveUserGroqKey()" class="btn btn-sm btn-primary"
+                        style="font-size:0.78rem; padding:0.35rem 0.75rem; white-space:nowrap; display:inline-flex; align-items:center; gap:0.35rem;">
+                        <svg id="saveGroqKeySpinner" class="ai-spin" width="13" height="13" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2.5" style="display:none;">
                             <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
                             <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
                         </svg>
                         <span id="saveGroqKeyText">Verify & Save</span>
                     </button>
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.4rem; font-size:0.72rem;">
-                    <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" style="color:var(--accent-blue); text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:0.25rem;">
+                <div
+                    style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.4rem; font-size:0.72rem;">
+                    <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer"
+                        style="color:var(--accent-blue); text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:0.25rem;">
                         <span>Get Free Key (Groq Console)</span>
                         <span>↗</span>
                     </a>
                     <div style="display:flex; gap:0.6rem; align-items:center;">
-                        <button onclick="testActiveKeyStatus()" id="testActiveKeyBtn" style="background:none; border:none; color:var(--accent-blue); cursor:pointer; font-size:0.72rem; display:none; padding:0; text-decoration:underline;">
+                        <button onclick="testActiveKeyStatus()" id="testActiveKeyBtn"
+                            style="background:none; border:none; color:var(--accent-blue); cursor:pointer; font-size:0.72rem; display:none; padding:0; text-decoration:underline;">
                             Re-verify
                         </button>
-                        <button onclick="removeUserGroqKey()" id="removeKeyBtn" style="background:none; border:none; color:var(--accent-rose); cursor:pointer; font-size:0.72rem; display:none; padding:0; text-decoration:underline;">
+                        <button onclick="removeUserGroqKey()" id="removeKeyBtn"
+                            style="background:none; border:none; color:var(--accent-rose); cursor:pointer; font-size:0.72rem; display:none; padding:0; text-decoration:underline;">
                             Remove Key
                         </button>
                     </div>
                 </div>
-                <div id="aiKeyNoticeMsg" style="margin-top:0.5rem; font-size:0.75rem; border-radius:6px; padding:0.4rem 0.6rem; display:none; line-height:1.4;"></div>
+                <div id="aiKeyNoticeMsg"
+                    style="margin-top:0.5rem; font-size:0.75rem; border-radius:6px; padding:0.4rem 0.6rem; display:none; line-height:1.4;">
+                </div>
             </div>
 
             <div class="ai-chat-body" id="aiChatBody">
@@ -177,21 +211,38 @@
                 </div>
             </div>
 
+            <!-- QUICK ACTION PROMPTS -->
+            <div class="quick-actions-container">
+                <button type="button" class="action-pill" onclick="sendAIMessage('explain_simple')"
+                    title="Explain with simple real-world analogy">💡 Analogy</button>
+                <button type="button" class="action-pill" onclick="sendAIMessage('logic')"
+                    title="Break down algorithmic logic">⚙️ Logic</button>
+                <button type="button" class="action-pill" onclick="sendAIMessage('example')"
+                    title="Step-by-step example">📝 Example</button>
+                <button type="button" class="action-pill" onclick="sendAIMessage('dry_run')"
+                    title="Trace input in dry-run table">📊 Dry Run</button>
+                <button type="button" class="action-pill" onclick="sendAIMessage('interview')"
+                    title="Interview pitfalls & edge cases">🎯 Pitfalls</button>
+                <button type="button" class="action-pill" onclick="sendAIMessage('quiz_me')"
+                    title="Test your understanding">❓ Quiz Me</button>
+            </div>
+
             <div class="ai-input-area">
-                <input type="text" id="aiChatInput" class="ai-input" placeholder="Ask AI a question..." onkeydown="if(event.key==='Enter') sendAIMessage()">
+                <input type="text" id="aiChatInput" class="ai-input" placeholder="Ask AI a question..."
+                    onkeydown="if(event.key==='Enter') sendAIMessage()">
                 <button onclick="sendAIMessage()" class="btn btn-primary btn-sm">Send</button>
             </div>
         </aside>
     </div>
 
-    
+
     <!-- SCRIPTS -->
     <script src="/static/js/api.js?v=3.0"></script>
     <script src="/static/js/auth.js?v=3.0"></script>
     <script src="/static/js/navbar.js?v=3.1"></script>
-    <script src="/static/js/render-engine.js?v=3.0"></script>
+    <script src="/static/js/render-engine.js?v=3.5"></script>
     <script src="/static/js/voice.js?v=3.0"></script>
-    <script src="/static/js/ai-chat.js?v=3.1"></script>
+    <script src="/static/js/ai-chat.js?v=3.4"></script>
     <script src="/static/js/topics-data.js?v=11.0"></script>
     <script src="/static/js/sweetalert2.all.min.js?v=3.0"></script>
     <script>
@@ -203,4 +254,5 @@
     <script src="/static/js/search.js?v=1.2"></script>
     <script src="/static/js/learning.js?v=4.6"></script>
 </body>
+
 </html>

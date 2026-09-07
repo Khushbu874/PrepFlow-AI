@@ -1,6 +1,15 @@
 import os
 import sys
 
+# Ensure UTF-8 output encoding in Windows terminals without crashing on special characters
+try:
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
+
 # Ensure backend directory is in sys.path so 'import app' works seamlessly everywhere (Render / Local)
 backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if backend_dir not in sys.path:

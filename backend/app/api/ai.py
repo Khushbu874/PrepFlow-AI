@@ -26,6 +26,17 @@ class AdminAIGenerateRequest(BaseModel):
 
 @router.post("/ask")
 async def ask_ai_tutor(req: AIAskRequest):
+    # Log incoming user input to terminal
+    print("\n" + "=" * 70)
+    print("📥 [AI TUTOR - INCOMING USER INPUT]")
+    print("=" * 70)
+    print(f"📌 Topic       : {req.topic_title or 'General'}")
+    print(f"🏷️  Category    : {req.category_name or 'Computer Science'}")
+    print(f"⚡ Action Type : {req.action_type or 'chat'}")
+    print(f"🔑 Key Provided: {'Yes (starts with ' + req.user_api_key[:8] + '...)' if req.user_api_key else 'No'}")
+    print(f"💬 Prompt/Msg  :\n{req.message}")
+    print("-" * 70)
+
     response_text = await AIService.answer_topic_doubt(
         topic_title=req.topic_title or "Interview Preparation",
         category_name=req.category_name or "Computer Science",
@@ -34,6 +45,13 @@ async def ask_ai_tutor(req: AIAskRequest):
         section_content=req.section_content or "",
         user_api_key=req.user_api_key or ""
     )
+
+    # Log generated AI tutor output to terminal
+    print("\n" + "=" * 70)
+    print("📤 [AI TUTOR - OUTGOING RESPONSE]")
+    print("=" * 70)
+    print(response_text)
+    print("=" * 70 + "\n")
     
     # Save conversation log
     if req.user_id:

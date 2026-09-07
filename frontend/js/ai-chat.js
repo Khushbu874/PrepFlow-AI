@@ -14,14 +14,7 @@ let currentTopicContext = {
 
 function getUserGroqKey() {
     try {
-        const input = document.getElementById('userGroqKeyInput') || document.getElementById('userGeminiKeyInput');
         const savedKey = (localStorage.getItem(PREPFLOW_USER_GROQ_KEY) || '').trim();
-
-        // If user has actively typed a different value in the drawer that isn't saved:
-        if (input && input.value && input.value.trim() && savedKey && input.value.trim() !== savedKey) {
-            return ''; // Block unverified modified key
-        }
-
         if (savedKey && savedKey.startsWith('gsk_')) {
             return savedKey;
         }
@@ -40,20 +33,14 @@ function getUserGroqKey() {
 function handleGroqKeyInput() {
     const input = document.getElementById('userGroqKeyInput') || document.getElementById('userGeminiKeyInput');
     const notice = document.getElementById('aiKeyNoticeMsg');
-    const btn = document.getElementById('aiKeyStatusBtn');
-    const text = document.getElementById('aiKeyStatusText');
     const saveText = document.getElementById('saveGroqKeyText');
     if (!input) return;
 
     const val = input.value.trim();
-    const savedKey = (localStorage.getItem(PREPFLOW_USER_GROQ_KEY) || '').trim();
+    const savedKey = getUserGroqKey();
 
-    // If input differs from verified saved key:
-    if (val !== savedKey) {
-        // Mark current active state as unverified
-        localStorage.removeItem('prepflow_user_groq_key_verified');
-        if (btn) btn.className = 'ai-key-badge-btn missing';
-        if (text) text.innerText = val ? 'Unverified Key' : 'Add Groq Key';
+    // If user has actively entered a new key different from saved:
+    if (val && val !== savedKey) {
         if (saveText) saveText.innerText = 'Verify & Save';
         input.style.borderColor = 'var(--accent-amber)';
 
@@ -62,10 +49,11 @@ function handleGroqKeyInput() {
             notice.style.background = 'rgba(245, 158, 11, 0.12)';
             notice.style.border = '1px solid rgba(245, 158, 11, 0.35)';
             notice.style.color = 'var(--accent-amber)';
-            notice.innerHTML = 'Key change hui hai. Chat me use karne ke liye pehle <strong>Verify & Save</strong> karein.';
+            notice.innerHTML = 'Nayi key enter hui hai. Chat me use karne ke liye <strong>Verify & Save</strong> karein.';
         }
-    } else if (savedKey && localStorage.getItem('prepflow_user_groq_key_verified') === 'true') {
-        updateKeyStatusUI();
+    } else if (val === savedKey && savedKey) {
+        input.style.borderColor = 'var(--accent-green)';
+        if (saveText) saveText.innerText = 'Active';
         if (notice) notice.style.display = 'none';
     }
 }
@@ -97,9 +85,6 @@ async function saveUserGroqKey() {
 
     const val = input.value.trim();
     if (!val) {
-        localStorage.removeItem(PREPFLOW_USER_GROQ_KEY);
-        localStorage.removeItem('prepflow_user_groq_key_verified');
-        updateKeyStatusUI();
         if (notice) {
             notice.style.display = 'block';
             notice.style.background = 'rgba(244, 63, 94, 0.12)';
@@ -112,9 +97,6 @@ async function saveUserGroqKey() {
     }
 
     if (!val.startsWith('gsk_')) {
-        localStorage.removeItem(PREPFLOW_USER_GROQ_KEY);
-        localStorage.removeItem('prepflow_user_groq_key_verified');
-        updateKeyStatusUI();
         if (notice) {
             notice.style.display = 'block';
             notice.style.background = 'rgba(244, 63, 94, 0.12)';
@@ -136,7 +118,7 @@ async function saveUserGroqKey() {
         notice.style.background = 'rgba(59, 130, 246, 0.12)';
         notice.style.border = '1px solid rgba(59, 130, 246, 0.35)';
         notice.style.color = 'var(--accent-blue)';
-        notice.innerHTML = '<strong>Live Checking:</strong> Groq servers ke sath key ki validity aur active status verify ho raha hai...';
+        notice.innerHTML = '<strong>Live Checking:</strong> Groq servers ke sath key verify ho rahi hai...';
     }
 
     try {
@@ -164,13 +146,8 @@ async function saveUserGroqKey() {
             setTimeout(() => {
                 toggleAPIKeySettings(false);
                 if (notice) notice.style.display = 'none';
-            }, 1400);
+            }, 1200);
         } else {
-            // Key is invalid, inactive, or revoked: WIPE localStorage so no stale key lingers!
-            localStorage.removeItem(PREPFLOW_USER_GROQ_KEY);
-            localStorage.removeItem('prepflow_user_groq_key_verified');
-            updateKeyStatusUI();
-
             if (notice) {
                 notice.style.display = 'block';
                 notice.style.background = 'rgba(244, 63, 94, 0.15)';
@@ -183,9 +160,6 @@ async function saveUserGroqKey() {
             input.focus();
         }
     } catch (e) {
-        // Verification failed due to network error: clear unverified status
-        localStorage.removeItem('prepflow_user_groq_key_verified');
-        updateKeyStatusUI();
         if (notice) {
             notice.style.display = 'block';
             notice.style.background = 'rgba(244, 63, 94, 0.15)';
@@ -303,6 +277,7 @@ function updateKeyStatusUI() {
     const text = document.getElementById('aiKeyStatusText');
     const removeBtn = document.getElementById('removeKeyBtn');
     const testBtn = document.getElementById('testActiveKeyBtn');
+    const saveText = document.getElementById('saveGroqKeyText');
     const input = document.getElementById('userGroqKeyInput') || document.getElementById('userGeminiKeyInput');
 
     if (!btn || !text) return;
@@ -313,8 +288,11 @@ function updateKeyStatusUI() {
         btn.title = 'Groq API Key active & verified. Click to edit or check status.';
         if (removeBtn) removeBtn.style.display = 'inline-block';
         if (testBtn) testBtn.style.display = 'inline-block';
-        if (input && !input.value) {
-            input.placeholder = '•••••••••••••••••••• (Groq Active)';
+        if (saveText) saveText.innerText = 'Active';
+        if (input) {
+            input.value = key;
+            input.placeholder = 'Paste gsk_... key';
+            input.style.borderColor = 'var(--accent-green)';
         }
     } else {
         btn.className = 'ai-key-badge-btn missing';
@@ -322,7 +300,12 @@ function updateKeyStatusUI() {
         btn.title = 'Add your free Groq API key to chat with AI';
         if (removeBtn) removeBtn.style.display = 'none';
         if (testBtn) testBtn.style.display = 'none';
-        if (input) input.placeholder = 'Paste gsk_... key';
+        if (saveText) saveText.innerText = 'Verify & Save';
+        if (input) {
+            input.value = '';
+            input.placeholder = 'Paste gsk_... key';
+            input.style.borderColor = 'var(--border-color)';
+        }
     }
 }
 
@@ -376,25 +359,35 @@ function setAITopicContext(topicId, title, categoryName) {
 
 async function sendAIMessage(actionType = 'chat', customPrompt = null) {
     const inputEl = document.getElementById('aiChatInput');
-    const message = customPrompt || (inputEl ? inputEl.value.trim() : '');
+    const message = (inputEl ? inputEl.value.trim() : '');
     
-    if (!message && actionType === 'chat') return;
+    const actionDisplayMap = {
+        explain_simple: "💡 Explain simply with an analogy",
+        logic: "⚙️ Break down the core logic line-by-line",
+        example: "📝 Show a step-by-step example",
+        dry_run: "📊 Trace with a dry run table",
+        interview: "🎯 Top interview questions & pitfalls",
+        quiz_me: "❓ Quiz me on this topic"
+    };
+
+    const finalMessage = customPrompt || (actionType === 'chat' ? message : (message || actionDisplayMap[actionType] || 'Explain'));
+    if (!finalMessage && actionType === 'chat') return;
     
     if (inputEl) inputEl.value = '';
     
     const chatBody = document.getElementById('aiChatBody');
     if (!chatBody) return;
 
-    // 1. ALWAYS append User Message Bubble immediately so user always sees what they typed!
+    // 1. ALWAYS append User Message Bubble immediately
     const userBubble = document.createElement('div');
     userBubble.className = 'chat-bubble chat-bubble-user';
-    userBubble.innerText = customPrompt || message;
+    userBubble.innerText = finalMessage;
     chatBody.appendChild(userBubble);
     chatBody.scrollTop = chatBody.scrollHeight;
     
     // 2. Check if user has a verified API key
     const userApiKey = getUserGroqKey();
-    if (!userApiKey && actionType === 'chat') {
+    if (!userApiKey) {
         toggleAPIKeySettings(true);
         const notice = document.getElementById('aiKeyNoticeMsg');
         const input = document.getElementById('userGroqKeyInput') || document.getElementById('userGeminiKeyInput');
@@ -410,7 +403,6 @@ async function sendAIMessage(actionType = 'chat', customPrompt = null) {
                 : 'Groq API Key Required: AI chat use karne ke liye pehle apni Groq key verify aur save karein.';
         }
 
-        // Inform user in chat bubble and STOP execution completely
         const aiBubble = document.createElement('div');
         aiBubble.className = 'chat-bubble chat-bubble-ai';
         aiBubble.innerHTML = hasEditedValue
@@ -418,7 +410,7 @@ async function sendAIMessage(actionType = 'chat', customPrompt = null) {
             : `<strong>Groq API Key Required:</strong> AI chat ke liye valid Groq key required hai. Kripya drawer me apni free key paste karke <strong>Verify & Save</strong> karein.`;
         chatBody.appendChild(aiBubble);
         chatBody.scrollTop = chatBody.scrollHeight;
-        return; // STOP! Never call backend with unverified key!
+        return;
     }
     
     // 3. Append AI Loading Bubble
@@ -439,7 +431,7 @@ async function sendAIMessage(actionType = 'chat', customPrompt = null) {
                 topic_id: currentTopicContext.topic_id,
                 topic_title: currentTopicContext.topic_title,
                 category_name: currentTopicContext.category_name,
-                message: message,
+                message: finalMessage,
                 action_type: actionType,
                 user_api_key: userApiKey
             })
@@ -449,8 +441,8 @@ async function sendAIMessage(actionType = 'chat', customPrompt = null) {
         const renderEngine = window.PrepFlowRender || PrepFlowRender;
         aiBubble.innerHTML = renderEngine.formatAIMessage(data.response);
 
-        // If the response indicates key issue, prompt key drawer
-        if (data.response && (data.response.includes('Groq API Key Invalid') || data.response.includes('Groq API Key Required') || data.response.includes('Groq Key Error'))) {
+        // ONLY open key drawer if user key is genuinely missing or rejected as 401 Unauthorized
+        if (data.response && (data.response.includes('Groq API Key Unauthorized') || data.response.includes('Groq API Key Required'))) {
             toggleAPIKeySettings(true);
         }
         
